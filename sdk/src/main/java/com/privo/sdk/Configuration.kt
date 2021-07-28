@@ -1,6 +1,6 @@
 package com.privo.sdk
 
-import com.privo.sdk.model.EnviromentType
+import com.privo.sdk.model.EnvironmentType
 
-internal class Configuration constructor(type: EnviromentType){
+internal class Configuration constructor(type: EnvironmentType){
 }

@@ -1,9 +1,10 @@
 package com.privo.sdk.model
 
-enum class EnviromentType {
+enum class EnvironmentType {
     Local,
     Dev,
     Int,
     Test,
+    Staging,
     Prod
 }
