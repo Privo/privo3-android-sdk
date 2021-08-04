@@ -5,6 +5,8 @@ import android.os.Looper
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.model.TmpStorageResponse
 import com.privo.sdk.model.TmpStringObject
+import com.privo.sdk.model.VerificationMethodTypeAdapter
+import com.privo.sdk.model.VerificationOutcomeAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapters.Rfc3339DateJsonAdapter
 import okhttp3.*
@@ -19,6 +21,8 @@ class Rest {
     private val moshi: Moshi = Moshi
         .Builder()
         .add(Date::class.java, Rfc3339DateJsonAdapter())
+        .add(VerificationMethodTypeAdapter())
+        .add(VerificationOutcomeAdapter())
         .build()
     private val JSON : MediaType = "application/json; charset=utf-8".toMediaType()
 

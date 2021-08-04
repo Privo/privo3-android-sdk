@@ -1,8 +1,20 @@
 package com.privo.sdk.model
 
-import com.squareup.moshi.Json
+import com.squareup.moshi.FromJson
 import com.squareup.moshi.JsonClass
-import java.util.*
+import com.squareup.moshi.ToJson
+
+class VerificationMethodTypeAdapter {
+    @ToJson
+    fun toJson(enum: VerificationMethodType): Int {
+        return enum.method
+    }
+
+    @FromJson
+    fun fromJson(type: Int): VerificationMethodType {
+        return VerificationMethodType.values().first { it.method == type }
+    }
+}
 
 enum class VerificationMethodType(val method: Int) {
     CreditCard(1),
@@ -12,6 +24,18 @@ enum class VerificationMethodType(val method: Int) {
     CorporateEmail(13),
     PrintForm(15),
     PayPal(10)
+}
+
+class VerificationOutcomeAdapter {
+    @ToJson
+    fun toJson(enum: VerificationOutcome): Int {
+        return enum.outcome
+    }
+
+    @FromJson
+    fun fromJson(type: Int): VerificationOutcome {
+        return VerificationOutcome.values().first { it.outcome == type }
+    }
 }
 enum class VerificationOutcome(val outcome: Int) {
     Pass(1),
@@ -28,7 +52,7 @@ data class VerificationResponse(
     val transactionID: String,
     val verificationMethod: VerificationMethodType,
     val matchOutcome: VerificationOutcome,
-    val requestTimestamp: Date,
+    val requestTimestamp: Long,
     val locale: String,
     val matchCode: String?,
     val redirectUrl: String?,
