@@ -20,9 +20,4 @@ internal class PrivoWebViewClient(private val config: WebViewConfig, private val
         }
         return true
     }
-
-    override fun onPageFinished(view: WebView?, url: String?) {
-        Log.d("onPageFinished:::::::", url ?: "Null")
-        super.onPageFinished(view, url)
-    }
 }

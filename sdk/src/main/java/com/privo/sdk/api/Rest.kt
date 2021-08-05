@@ -26,9 +26,7 @@ class Rest {
         .build()
     private val JSON : MediaType = "application/json; charset=utf-8".toMediaType()
 
-
-    private fun runOnUiThread(completion: () -> Unit) = Handler(Looper.getMainLooper()).post(completion)
-
+    private fun runOnMainThread(completion: () -> Unit) = Handler(Looper.getMainLooper()).post(completion)
 
     fun <T>getObjectFromTMPStorage(key: String, clazz:  Class<T>, completion: (T?) -> Unit) {
         val tmpStorageURL = PrivoInternal.configuration.helpersUrl
@@ -52,7 +50,7 @@ class Rest {
 
                         wrapperAdapter.fromJson(json)?.let { wrapper ->
                             valueAdapter.fromJson(wrapper.data)?.let { value ->
-                                runOnUiThread {
+                                runOnMainThread {
                                     completion(value)
                                 }
                                 return
@@ -60,7 +58,7 @@ class Rest {
                         }
                     }
                 }
-                runOnUiThread {
+                runOnMainThread {
                     completion(null)
                 }
             }
@@ -96,14 +94,14 @@ class Rest {
                 if (response.isSuccessful) {
                     response.body?.string()?.let { json ->
                         moshi.adapter(TmpStorageResponse::class.java).fromJson(json)?.let { obj ->
-                            runOnUiThread {
+                            runOnMainThread {
                                 completion(obj.id)
                             }
                             return
                         }
                     }
                 }
-                runOnUiThread {
+                runOnMainThread {
                     completion(null)
                 }
             }

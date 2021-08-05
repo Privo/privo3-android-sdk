@@ -1,6 +1,6 @@
 package com.privo.sdk.internal
 
-import android.R
+import android.R.style.Theme_Translucent_NoTitleBar_Fullscreen
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
@@ -36,14 +36,13 @@ internal class PrivoInternal private constructor() {
             webView.settings.databaseEnabled = true
             webView.settings.domStorageEnabled = true
             webView.setBackgroundColor(Color.TRANSPARENT)
-
             webView.loadUrl(config.url)
 
             val paramsWebView = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT,
                 RelativeLayout.LayoutParams.MATCH_PARENT
             )
-            val dialog = Dialog(context, R.style.Theme_Translucent_NoTitleBar_Fullscreen)
+            val dialog = Dialog(context, Theme_Translucent_NoTitleBar_Fullscreen)
             dialog.addContentView(webView, paramsWebView)
             webView.webViewClient = PrivoWebViewClient(config,dialog)
             dialog.show()

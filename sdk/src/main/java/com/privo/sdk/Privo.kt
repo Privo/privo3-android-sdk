@@ -8,7 +8,6 @@ class Privo private constructor() {
     companion object {
         fun initialize (settings: PrivoSettings) = PrivoInternal.initialize(settings)
         fun getSettings () = PrivoInternal.settings
-
         val verification = PrivoVerification()
     }
 }
