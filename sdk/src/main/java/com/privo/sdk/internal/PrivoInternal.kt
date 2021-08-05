@@ -1,6 +1,7 @@
 package com.privo.sdk.internal
 
 import android.R.style.Theme_Translucent_NoTitleBar_Fullscreen
+import android.annotation.SuppressLint
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Color
@@ -27,6 +28,7 @@ internal class PrivoInternal private constructor() {
         }
         val rest = Rest();
 
+        @SuppressLint("SetJavaScriptEnabled")
         fun showWebView(context: Context, config: WebViewConfig) {
             val webView = WebView(context)
             webView.settings.loadWithOverviewMode = true

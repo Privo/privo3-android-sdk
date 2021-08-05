@@ -3,7 +3,6 @@ package com.privo.sdk.internal
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.app.Dialog
-import android.util.Log
 import android.webkit.WebResourceRequest
 import com.privo.sdk.model.WebViewConfig
 
