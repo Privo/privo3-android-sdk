@@ -29,7 +29,7 @@ internal class PrivoInternal private constructor() {
         val rest = Rest();
 
         @SuppressLint("SetJavaScriptEnabled")
-        fun showWebView(context: Context, config: WebViewConfig) {
+        fun getWebView(context: Context, url: String): WebView {
             val webView = WebView(context)
             webView.settings.loadWithOverviewMode = true
             webView.settings.useWideViewPort = false
@@ -38,8 +38,12 @@ internal class PrivoInternal private constructor() {
             webView.settings.databaseEnabled = true
             webView.settings.domStorageEnabled = true
             webView.setBackgroundColor(Color.TRANSPARENT)
-            webView.loadUrl(config.url)
+            webView.loadUrl(url)
+            return webView
+        }
 
+        fun showWebView(context: Context, config: WebViewConfig) {
+            val webView = getWebView(context, config.url)
             val paramsWebView = RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT,
                 RelativeLayout.LayoutParams.MATCH_PARENT
