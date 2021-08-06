@@ -6,13 +6,16 @@ import android.app.Dialog
 import android.content.Context
 import android.print.PrintAttributes
 import android.print.PrintManager
-import android.util.Log
 import android.view.View
 import android.webkit.WebResourceRequest
 import com.privo.sdk.internal.PrivoInternal.Companion.getWebView
 import com.privo.sdk.model.WebViewConfig
 
 internal class PrivoWebViewClient(private val config: WebViewConfig, private val parentDialog: Dialog): WebViewClient() {
+    override fun onPageFinished(view: WebView?, url: String?) {
+        super.onPageFinished(view, url)
+
+    }
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
         val url = request.url.toString()
         val finishCriteria = config.finishCriteria
