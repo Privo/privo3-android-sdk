@@ -22,7 +22,7 @@ enum class VerificationMethodType(val method: Int) {
     Phone(4),
     SSN(5),
     CorporateEmail(13),
-    PrintForm(15),
+    PrintForm(7),
     PayPal(10)
 }
 

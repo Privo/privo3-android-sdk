@@ -1,11 +1,13 @@
 package com.privo.sdk.internal
 
 
+import android.app.ProgressDialog
 import android.content.Context
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.core.content.FileProvider
+import com.privo.sdk.components.LoadingDialog
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException

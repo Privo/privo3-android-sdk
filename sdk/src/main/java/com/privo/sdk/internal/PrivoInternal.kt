@@ -3,6 +3,7 @@ package com.privo.sdk.internal
 import android.R.style.Theme_Translucent_NoTitleBar_Fullscreen
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.app.ProgressDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
