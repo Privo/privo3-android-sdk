@@ -21,7 +21,7 @@ class PrivoVerification {
     fun showVerificationModal(context: Context, profile: UserVerificationProfile, completion: ((Array<VerificationEvent>) -> Unit)) {
         storeState(profile) { id ->
             val verificationUrl = "${PrivoInternal.configuration.verificationUrl}/index.html?$stateKey=$id#/intro"
-            val config = WebViewConfig(verificationUrl, finishCriteria = "verification-loading", onFinish = { url ->
+            val config = WebViewConfig(verificationUrl, true, "/print","verification-loading", onFinish = { url ->
                 url.getQueryParameter(eventsKey)?.let { eventId ->
                     PrivoInternal.rest.getObjectFromTMPStorage(eventId, Array<VerificationEvent>::class.java) { events ->
                         completion(events ?: arrayOf())

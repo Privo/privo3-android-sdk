@@ -21,8 +21,8 @@ enum class VerificationMethodType(val method: Int) {
     DriversLicense(2),
     Phone(4),
     SSN(5),
-    CorporateEmail(13),
-    PrintForm(15),
+    CorporateEmail(6),
+    PrintForm(7),
     PayPal(10)
 }
 
