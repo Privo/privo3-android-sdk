@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.privo.sdk">
     <uses-permission android:name="android.permission.INTERNET" />
-    <application>
+    <application android:allowBackup="true" android:backupAgent=".internal.PrivoBackupAgent">
+        <meta-data android:name="com.google.android.backup.api_key"
+            android:value="unused" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

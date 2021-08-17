@@ -18,7 +18,7 @@ import android.widget.ProgressBar
 import androidx.appcompat.app.AlertDialog
 
 
-internal class LoadingDialog (context: Context) {
+class LoadingDialog (context: Context) {
     private val dialog : AlertDialog;
 
     init {
