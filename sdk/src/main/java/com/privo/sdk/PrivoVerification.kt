@@ -6,7 +6,7 @@ import com.privo.sdk.model.*
 import com.privo.sdk.model.WebViewConfig
 
 
-class PrivoVerification {
+class PrivoVerification(val context: Context) {
     private val eventsKey = "privo_events_id"
     private val stateKey = "privo_state_id"
     private fun storeState(profile: UserVerificationProfile?, completion: (String?) -> Unit ) {
@@ -18,7 +18,7 @@ class PrivoVerification {
         }
     }
 
-    fun showVerificationModal(context: Context, profile: UserVerificationProfile, completion: ((Array<VerificationEvent>) -> Unit)) {
+    fun showVerificationModal(profile: UserVerificationProfile, completion: ((Array<VerificationEvent>) -> Unit)) {
         storeState(profile) { id ->
             val verificationUrl = "${PrivoInternal.configuration.verificationUrl}/index.html?$stateKey=$id#/intro"
             val config = WebViewConfig(verificationUrl, true, "/print","verification-loading", onFinish = { url ->

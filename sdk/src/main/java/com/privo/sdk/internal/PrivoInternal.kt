@@ -3,7 +3,6 @@ package com.privo.sdk.internal
 import android.R.style.Theme_Translucent_NoTitleBar_Fullscreen
 import android.annotation.SuppressLint
 import android.app.Dialog
-import android.app.ProgressDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -11,7 +10,6 @@ import android.net.Uri
 import android.webkit.WebView
 import android.widget.RelativeLayout
 import androidx.core.content.ContextCompat.startActivity
-import androidx.core.content.FileProvider
 import com.privo.sdk.Configuration
 import com.privo.sdk.api.Rest
 import com.privo.sdk.model.PrivoSettings
