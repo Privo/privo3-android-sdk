@@ -47,8 +47,8 @@ class PrivoAgeGate(val context: Context) {
     }
     fun verifyStatus(ageGateIdentifier: String, completion: (AgeGateStatus?) -> Unit) {
         val profile = UserVerificationProfile(partnerDefinedUniqueID = "AG:$ageGateIdentifier")
-        verification.showVerificationModal(profile) {
-            val status = ageGate.getVerificationStatus(it,ageGateIdentifier)
+        verification.showVerification(profile) { events ->
+            val status = ageGate.getVerificationStatus(events,ageGateIdentifier)
             completion(status)
         }
     }
