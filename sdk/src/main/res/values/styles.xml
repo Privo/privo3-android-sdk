@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="PrivoDialogStyle" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowSoftInputMode">stateUnchanged</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+</resources>

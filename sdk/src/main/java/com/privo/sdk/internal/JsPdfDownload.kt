@@ -19,17 +19,10 @@ internal class JsPdfDownload(private val webView: WebView) {
         webView.setDownloadListener { url, _, _, _, _ ->
             webView.loadUrl(getBase64StringFromBlobUrl(url));
         }
-        webView.addJavascriptInterface(this, "Android");
     }
 
     @Throws(IOException::class)
-    @JavascriptInterface
-    fun getBase64FromBlobData(base64Data: String) {
-        convertBase64StringToPdfAndStoreIt(base64Data)
-    }
-
-    @Throws(IOException::class)
-    private fun convertBase64StringToPdfAndStoreIt(base64PDf: String) {
+    fun convertBase64StringToPdfAndStoreIt(base64PDf: String) {
         val file = File(webView.context.getExternalFilesDir(null), "PRIVO Print Form.pdf")
         val pdfAsBytes: ByteArray =
             Base64.decode(base64PDf.replaceFirst("^data:application/pdf;base64,".toRegex(), ""), 0)

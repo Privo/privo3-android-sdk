@@ -5,12 +5,13 @@ import android.webkit.WebViewClient
 import android.app.Dialog
 import android.content.Context
 import android.graphics.Bitmap
+import android.net.Uri
 import android.print.PrintAttributes
 import android.print.PrintManager
 import android.view.View
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import com.privo.sdk.components.LoadingDialog
-import com.privo.sdk.internal.PrivoInternal.Companion.getWebView
 import com.privo.sdk.model.WebViewConfig
 
 internal class PrivoWebViewClient(private val config: WebViewConfig, private val parentDialog: Dialog): WebViewClient() {
@@ -21,6 +22,7 @@ internal class PrivoWebViewClient(private val config: WebViewConfig, private val
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
+        config.onLoad?.invoke()
     }
 
     override fun onLoadResource(view: WebView?, url: String?) {
@@ -29,25 +31,26 @@ internal class PrivoWebViewClient(private val config: WebViewConfig, private val
 
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
         val url = request.url.toString()
-        val finishCriteria = config.finishCriteria
-        if (finishCriteria != null && url.contains(finishCriteria) ) {
-            config.onFinish?.let {
-                it(request.url)
-            }
-            parentDialog.hide()
-            return false
-        }
         val printCriteria = config.printCriteria
         if (printCriteria != null && url.contains(printCriteria) ) {
             view?.let{
                 printContent(it, url)
             }
+            return true
         }
-        return true
+        return false
+    }
+
+    override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+        super.doUpdateVisitedHistory(view, url, isReload)
+        val finishCriteria = config.finishCriteria
+        if (finishCriteria != null && url != null && url.contains(finishCriteria) ) {
+            config.onFinish?.invoke(Uri.parse(url))
+        }
     }
 
     private fun printContent(parentView: WebView, url: String) {
-        val webView = getWebView(parentView.context, url)
+        val webView = PrivoWebViewBuilder(parentView.context, url).build()
         loading.show()
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {

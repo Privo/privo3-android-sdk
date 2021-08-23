@@ -1,7 +1,9 @@
 package com.privo.sdk.api
 
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.model.*
 import com.squareup.moshi.Moshi
@@ -26,11 +28,18 @@ class Rest {
 
     private fun runOnMainThread(completion: () -> Unit) = Handler(Looper.getMainLooper()).post(completion)
 
+
+    private fun handleError (e: Exception, completion:() -> Unit) {
+        Log.e("PRIVO Android SDK", "exception",e)
+        val event = AnalyticEvent(PrivoInternal.settings.serviceIdentifier, e.toString())
+        sendAnalyticEvent(event)
+        runOnMainThread { completion() }
+    }
+
     private fun <T>getMoshiCallback(type: Class<T>, completion:(T?) -> Unit): Callback {
         return object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                // TODO: Add error completion here
-                e.printStackTrace()
+                handleError(e) { completion(null) }
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -42,7 +51,7 @@ class Rest {
                             runOnMainThread { completion(obj) }
                             return
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            handleError(e) { completion(null) }
                         }
                     }
                 }
@@ -53,7 +62,11 @@ class Rest {
         }
     }
 
-    fun <T>getObjectFromTMPStorage(key: String, clazz:  Class<T>, completion: (T?) -> Unit) {
+    private fun <T> processRequest (request: Request, type: Class<T>, completion:(T?) -> Unit) {
+        val callback = getMoshiCallback(type, completion)
+        client.newCall(request).enqueue(callback)
+    }
+    fun getStringFromTMPStorage(key: String, completion: (String?) -> Unit) {
         val tmpStorageURL = PrivoInternal.configuration.helpersUrl
             .toHttpUrl()
             .newBuilder()
@@ -61,21 +74,27 @@ class Rest {
             .addPathSegment(key)
             .build()
         val request = Request.Builder().url(tmpStorageURL).build()
-        val valueAdapter = moshi.adapter(clazz)
-        val callback = getMoshiCallback(TmpStringObject::class.java) {
+        processRequest(request,TmpStringObject::class.java) {
+            completion(it?.data)
+        }
+    }
+    fun <T>getObjectFromTMPStorage(key: String, clazz:  Class<T>, completion: (T?) -> Unit) {
+        val adapter = moshi.adapter(clazz)
+        getStringFromTMPStorage(key) {
             it?.let { wrapper ->
-                val value = valueAdapter.fromJson(wrapper.data)
-                completion(value)
+                try {
+                    val value = adapter.fromJson(wrapper)
+                    completion(value)
+                } catch (e: Exception) {
+                    handleError(e) { completion(null) }
+                }
             } ?: run {
                 completion(null)
             }
         }
-        client.newCall(request).enqueue(callback)
     }
-
-    fun <T>addObjectToTMPStorage(value: T, clazz:  Class<T>, completion: ((String?) -> Unit), ttl: Int? = null, ) {
-        val valueAdapter = moshi.adapter(clazz)
-        val wrapperAdapter = moshi.adapter(TmpStringObject::class.java)
+    fun addStringToTMPStorage(value: String, completion: ((String?) -> Unit), ttl: Int? = null, ) {
+        val adapter = moshi.adapter(TmpStringObject::class.java)
 
         val tmpStorageURL = PrivoInternal.configuration.helpersUrl
             .toHttpUrl()
@@ -83,9 +102,8 @@ class Rest {
             .addPathSegment("storage")
             .addPathSegment("put")
             .build()
-        val valueString = valueAdapter.toJson(value)
-        val postBody = wrapperAdapter
-            .toJson(TmpStringObject(valueString, ttl))
+        val postBody = adapter
+            .toJson(TmpStringObject(value, ttl))
             .toRequestBody(JSON)
 
         val request = Request.Builder()
@@ -93,10 +111,14 @@ class Rest {
             .post(postBody)
             .build()
 
-        val callback = getMoshiCallback(TmpStorageResponse::class.java) {
+        processRequest(request,TmpStorageResponse::class.java) {
             completion(it?.id)
         }
-        client.newCall(request).enqueue(callback)
+    }
+    fun <T>addObjectToTMPStorage(value: T, clazz:  Class<T>, completion: ((String?) -> Unit), ttl: Int? = null, ) {
+        val valueAdapter = moshi.adapter(clazz)
+        val valueString = valueAdapter.toJson(value)
+        addStringToTMPStorage(valueString,completion)
     }
     fun processAgStatus(data: AgStatusRecord, completion: (AgeGateStatus?) -> Unit) {
         val url = PrivoInternal.configuration.ageGateUrl
@@ -112,9 +134,7 @@ class Rest {
             .url(url)
             .put(body)
             .build()
-
-        val callback = getMoshiCallback(AgeGateStatus::class.java,completion)
-        client.newCall(request).enqueue(callback)
+        processRequest(request,AgeGateStatus::class.java,completion)
     }
 
     fun processFpStatus(data: FpStatusRecord, completion: (AgeGateStatus?) -> Unit) {
@@ -132,8 +152,7 @@ class Rest {
             .put(body)
             .build()
 
-        val callback = getMoshiCallback(AgeGateStatus::class.java,completion)
-        client.newCall(request).enqueue(callback)
+        processRequest(request,AgeGateStatus::class.java,completion)
     }
     fun processBirthDate(data: FpStatusRecord, completion: (AgeGateStatus?) -> Unit) {
         val url = PrivoInternal.configuration.ageGateUrl
@@ -150,8 +169,7 @@ class Rest {
             .post(body)
             .build()
 
-        val callback = getMoshiCallback(AgeGateStatus::class.java,completion)
-        client.newCall(request).enqueue(callback)
+        processRequest(request,AgeGateStatus::class.java,completion)
     }
     fun generateFingerprint(fingerprint: DeviceFingerprint, completion: (DeviceFingerprintResponse?) -> Unit) {
         val url = PrivoInternal.configuration.authUrl
@@ -168,7 +186,81 @@ class Rest {
             .post(body)
             .build()
 
-        val callback = getMoshiCallback(DeviceFingerprintResponse::class.java,completion)
-        client.newCall(request).enqueue(callback)
+        processRequest(request,DeviceFingerprintResponse::class.java,completion)
+    }
+    fun getServiceInfo(serviceIdentifier: String, completion: (ServiceInfo?) -> Unit) {
+        val url = PrivoInternal.configuration.authUrl
+            .toHttpUrl()
+            .newBuilder()
+            .addPathSegments("info/svc")
+            .addQueryParameter("service_identifier",serviceIdentifier)
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        processRequest(request,ServiceInfo::class.java,completion)
+    }
+
+    fun getAuthSessionId(completion:(String?) -> Unit) {
+        val url = "${PrivoInternal.configuration.authUrl}/privo/authorize?client_id=mobile&redirect_uri="
+            .toHttpUrl()
+            .newBuilder()
+            .build()
+        val sessionIdKey = "session_id"
+
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                handleError(e) { completion(null) }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val redirectUrl = response.request.url.toString()
+                val redirectUri = Uri.parse(redirectUrl)
+                val sessionId = redirectUri.getQueryParameter(sessionIdKey)
+                runOnMainThread { completion(sessionId) }
+            }
+        })
+
+    }
+
+    fun renewToken(oldToken: String, sessionId: String, completion: (LoginResponse?) -> Unit) {
+        val url = "${PrivoInternal.configuration.authUrl}/privo/login/token?session_id=${sessionId}"
+            .toHttpUrl()
+            .newBuilder()
+            .build()
+        val body = oldToken.toRequestBody(JSON)
+        val request = Request.Builder()
+            .url(url)
+            .post(body)
+            .build()
+
+        processRequest(request,LoginResponse::class.java,completion)
+    }
+
+    fun sendAnalyticEvent(event: AnalyticEvent) {
+        try {
+            val url = "${PrivoInternal.configuration.helpersUrl}/metrics"
+                .toHttpUrl()
+                .newBuilder()
+                .build()
+            val adapter = moshi.adapter(AnalyticEvent::class.java)
+            val body = adapter
+                .toJson(event)
+                .toRequestBody(JSON)
+            val request = Request.Builder()
+                .url(url)
+                .post(body)
+                .build()
+            processRequest(request,Unit::class.java){}
+        } catch(e: java.lang.Exception) {
+            Log.e("PRIVO Android SDK", "exception",e)
+        }
     }
 }
