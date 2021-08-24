@@ -45,3 +45,7 @@ dependencies {
     implementation project(':sdk')
 }
 ```
+
+Documentation:
+
+https://developer.privo.com/#doc_mobilekotlin-requirements
