@@ -5,24 +5,24 @@ Installation:
 
 Add it in your root build.gradle at the end of repositories:
 ```
-	allprojects {
-		repositories {
-			...
-			maven { url 'https://jitpack.io' }
-		}
+allprojects {
+	repositories {
+		...
+		maven { url 'https://jitpack.io' }
 	}
+}
 ```
 Add the dependency:
 ```
 dependencies {
-		implementation 'com.github.Privo:/privo3-android-sdk:{{release}}'
-	}
+	implementation 'com.github.Privo:/privo3-android-sdk:{{release}}'
+}
 ```
 
 Note:
 {{release}} - current release version tag. For example 0.0.1
 
-Alternativly you can install in manually:
+Alternatively you can install in manually:
 
 Open your project in Android Studio
 Download the library (using Git, or a zip archive to unzip)
