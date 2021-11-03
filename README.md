@@ -22,7 +22,7 @@ dependencies {
 Note:
 {{release}} - current release version tag. For example 0.0.1
 
-Alternatively you can install in manually:</br>
+Alternatively you can install it manually:</br>
 
 * Open your project in Android Studio
 * Download the library (using Git, or a zip archive to unzip)
