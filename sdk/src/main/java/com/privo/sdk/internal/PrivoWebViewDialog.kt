@@ -29,6 +29,8 @@ class PrivoWebViewDialog internal constructor(context: Context, config: WebViewC
         dialog.window?.statusBarColor = colorPrimary
         JsPrivoInterface(webView,config)
         webView.webViewClient = PrivoWebViewClient(config,dialog)
+        dialog.setOnCancelListener { config.onCancel?.invoke() }
+
     }
     private fun runOnMainThread(completion: () -> Unit) = Handler(Looper.getMainLooper()).post(completion)
     fun show() = runOnMainThread {

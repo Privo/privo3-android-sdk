@@ -10,4 +10,5 @@ internal data class WebViewConfig(
     val onPrivoEvent: ((Map<String,String>?) -> Unit)? = null,
     val onLoad: (() -> Unit)? = null,
     val onFinish: ((Uri) -> Unit)? = null,
+    val onCancel: (() -> Unit)? = null,
 )
