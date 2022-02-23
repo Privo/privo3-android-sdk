@@ -6,6 +6,7 @@ import android.os.Looper
 import android.util.Log
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.model.*
+import com.privo.sdk.model.adapters.MillisecondsTimeStampAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.adapters.Rfc3339DateJsonAdapter
 import okhttp3.*
@@ -20,6 +21,7 @@ class Rest {
     private val moshi: Moshi = Moshi
         .Builder()
         .add(Date::class.java, Rfc3339DateJsonAdapter())
+        .add(MillisecondsTimeStampAdapter())
         .add(VerificationMethodTypeAdapter())
         .add(VerificationOutcomeAdapter())
         .add(AgeGateActionAdapter())

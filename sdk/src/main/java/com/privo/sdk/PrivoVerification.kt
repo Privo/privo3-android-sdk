@@ -1,6 +1,7 @@
 package com.privo.sdk
 
 import android.content.Context
+import com.privo.sdk.extensions.createVerificationEvent
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.internal.PrivoWebViewDialog
 import com.privo.sdk.model.*
@@ -20,18 +21,32 @@ class PrivoVerification(val context: Context) {
             PrivoInternal.rest.addObjectToTMPStorage(data, VerificationData::class.java, completion)
         }
     }
+    private fun getCancelEvents(): Array<VerificationEvent> = arrayOf(
+            createVerificationEvent(VerificationEventType.VerifyInitialized),
+            createVerificationEvent(VerificationEventType.VerifyCancel)
+        )
 
     fun showVerification(profile: UserVerificationProfile, completion: ((Array<VerificationEvent>) -> Unit)) {
         storeState(profile) { id ->
             val verificationUrl = "${PrivoInternal.configuration.verificationUrl}/index.html?$stateKey=$id#/intro"
-            val config = WebViewConfig(verificationUrl, true, "/print","verification-loading", onFinish = { url ->
-                url.getQueryParameter(eventsKey)?.let { eventId ->
-                    PrivoInternal.rest.getObjectFromTMPStorage(eventId, Array<VerificationEvent>::class.java) { events ->
-                        activePrivoWebViewDialog?.hide()
-                        completion(events ?: arrayOf())
+            val config = WebViewConfig(
+                verificationUrl,
+                true,
+                "/print",
+                "verification-loading",
+                onFinish = { url ->
+                    url.getQueryParameter(eventsKey)?.let { eventId ->
+                        PrivoInternal.rest.getObjectFromTMPStorage(eventId, Array<VerificationEvent>::class.java) { events ->
+                            activePrivoWebViewDialog?.hide()
+                            completion(events ?: arrayOf())
+                        }
                     }
+                },
+                onCancel = {
+                    val events = getCancelEvents()
+                    completion(events)
                 }
-            })
+            )
             activePrivoWebViewDialog = PrivoWebViewDialog(context, config)
             activePrivoWebViewDialog?.show()
         }

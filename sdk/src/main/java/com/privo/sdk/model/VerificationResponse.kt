@@ -47,6 +47,7 @@ enum class VerificationOutcome(val outcome: Int) {
 
 @JsonClass(generateAdapter = true)
 data class VerificationResponse(
+    val requestIdentifier: String,
     val verified: Boolean,
     val requestID: String,
     val transactionID: String,
