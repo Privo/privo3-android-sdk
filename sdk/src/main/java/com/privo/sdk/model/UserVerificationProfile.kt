@@ -8,7 +8,12 @@ import java.util.Date
 data class UserVerificationProfile (
     var firstName: String? = null,
     var lastName: String? = null,
-    @MillisecondsTimeStamp var birthDate: Date? = null,
+
+    @Deprecated(message = "birthDate field is deprecated, please use birthDateYYYYMMDD instead")
+    @MillisecondsTimeStamp
+    var birthDate: Date? = null,
+
+    var birthDateYYYYMMDD: String? = null,  // "yyyy-MM-dd"
     var email: String? = null,
     var postalCode: String? = null,
     var phone: String? = null,
