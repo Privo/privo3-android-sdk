@@ -9,7 +9,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class PrivoAgeGate(val context: Context) {
-    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private val ageGate = InternalAgeGate(context)
     private val verification = PrivoVerification(context)
 
@@ -29,11 +28,15 @@ class PrivoAgeGate(val context: Context) {
             ageGate.getFpStatus(extUserId,countryCode,completion)
         }
     }
-    fun getAgeStatusByBirthDate(birthDate: Date, extUserId: String?, countryCode: String?, completion:(AgeGateStatus?) -> Unit) {
-        val textDate = dateFormat.format(birthDate)
+    fun getAgeStatusByBirthDate(
+        birthDateYYYYMMDD: String, // "yyyy-MM-dd" format
+        extUserId: String?,
+        countryCode: String?,
+        completion:(AgeGateStatus?) -> Unit
+    ) {
         ageGate.getFpId { fpId ->
             fpId?.let { id ->
-                val record = FpStatusRecord(PrivoInternal.settings.serviceIdentifier,id,textDate, extUserId, countryCode)
+                val record = FpStatusRecord(PrivoInternal.settings.serviceIdentifier,id,birthDateYYYYMMDD,extUserId,countryCode)
                 PrivoInternal.rest.processBirthDate(record) {
                     it?.ageGateIdentifier?.let { agId ->
                         ageGate.storeAgId(agId)
@@ -55,8 +58,8 @@ class PrivoAgeGate(val context: Context) {
 }
 
 internal class InternalAgeGate(val context: Context) {
-    internal val AG_ID = "privoAgId"
-    internal val FP_ID = "privoFpId"
+    internal val AG_ID = "privoAgId_1"
+    internal val FP_ID = "privoFpId_1"
     private val preferences: SharedPreferences = context.getSharedPreferences(PrivoPreferenceKey, Context.MODE_PRIVATE)
 
     internal fun getFpId(completion: (String?) -> Unit) {
