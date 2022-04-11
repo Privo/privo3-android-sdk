@@ -1,27 +1,52 @@
 package com.privo.sdk.model
 
 import com.squareup.moshi.FromJson
-import com.squareup.moshi.JsonClass
 import com.squareup.moshi.ToJson
 
-class AgeGateActionAdapter {
+
+internal class AgeGateStatusInternalAdapter {
     @ToJson
-    fun toJson(enum: AgeGateAction): Int {
-        return enum.action
+    fun toJson(enum: AgeGateStatusInternal): String {
+        return enum.status
     }
 
     @FromJson
-    fun fromJson(type: Int): AgeGateAction {
-        return AgeGateAction.values().first { it.action == type }
+    fun fromJson(enum: String): AgeGateStatusInternal {
+        return AgeGateStatusInternal.values().first { it.status == enum }
     }
 }
 
-enum class AgeGateAction(val action: Int) {
-    Block(0),
-    Consent(1),
-    Verify(2),
-    Allow(3)
+internal enum class AgeGateStatusInternal(val status: String) {
+    Undefined("Undefined"),
+    Blocked ("Blocked"),
+    Allowed ("Allowed"),
+    Canceled ("Canceled"),
+    ConsentApproved ("Consent Approved"),
+    ConsentDeclined ("Consent Declined"),
+
+    // Internal statuses
+    OpenVerification ("open-verification-widget"),
+    CloseAgeGate ("close-age-gate-widget"),
 }
 
-@JsonClass(generateAdapter = true)
-data class AgeGateStatus(val action: AgeGateAction, val ageGateIdentifier: String)
+class AgeGateStatusAdapter {
+    @ToJson
+    fun toJson(enum: AgeGateStatus): String {
+        return enum.status
+    }
+
+    @FromJson
+    fun fromJson(enum: String): AgeGateStatus {
+        return AgeGateStatus.values().first { it.status == enum }
+    }
+}
+
+enum class AgeGateStatus(val status: String) {
+    Undefined("Undefined"),
+    Blocked("Blocked"),
+    Allowed("Allowed"),
+    Canceled("Canceled"),
+    Pending("Pending"),
+    ConsentApproved("Consent Approved"),
+    ConsentDeclined("Consent Declined"),
+}
