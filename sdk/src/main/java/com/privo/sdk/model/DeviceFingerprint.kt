@@ -5,8 +5,6 @@ import android.os.Build
 import android.util.DisplayMetrics
 import com.squareup.moshi.JsonClass
 import android.view.WindowManager
-import com.squareup.moshi.Json
-import com.squareup.moshi.ToJson
 
 @JsonClass(generateAdapter = true)
 data class DeviceInfo(

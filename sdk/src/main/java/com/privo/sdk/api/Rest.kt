@@ -25,6 +25,8 @@ class Rest {
         .add(VerificationMethodTypeAdapter())
         .add(VerificationOutcomeAdapter())
         .add(AgeGateActionAdapter())
+        .add(AgeGateStatusInternalAdapter())
+        .add(AgeGateStatusAdapter())
         .build()
     private val JSON : MediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -122,8 +124,8 @@ class Rest {
         val valueString = valueAdapter.toJson(value)
         addStringToTMPStorage(valueString,completion)
     }
-    fun processAgStatus(data: AgStatusRecord, completion: (AgeGateStatus?) -> Unit) {
-        val url = PrivoInternal.configuration.ageGateUrl
+    fun processAgStatus(data: AgStatusRecord, completion: (AgeGateResponse?) -> Unit) {
+        val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
             .newBuilder()
             .addPathSegments("age-gate/status/ag-id")
@@ -136,11 +138,11 @@ class Rest {
             .url(url)
             .put(body)
             .build()
-        processRequest(request,AgeGateStatus::class.java,completion)
+        processRequest(request,AgeGateResponse::class.java,completion)
     }
 
-    fun processFpStatus(data: FpStatusRecord, completion: (AgeGateStatus?) -> Unit) {
-        val url = PrivoInternal.configuration.ageGateUrl
+    fun processFpStatus(data: FpStatusRecord, completion: (AgeGateResponse?) -> Unit) {
+        val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
             .newBuilder()
             .addPathSegments("age-gate/status/fp-id")
@@ -154,10 +156,10 @@ class Rest {
             .put(body)
             .build()
 
-        processRequest(request,AgeGateStatus::class.java,completion)
+        processRequest(request,AgeGateResponse::class.java,completion)
     }
-    fun processBirthDate(data: FpStatusRecord, completion: (AgeGateStatus?) -> Unit) {
-        val url = PrivoInternal.configuration.ageGateUrl
+    fun processBirthDate(data: FpStatusRecord, completion: (AgeGateResponse?) -> Unit) {
+        val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
             .newBuilder()
             .addPathSegments("age-gate/birthdate")
@@ -171,7 +173,21 @@ class Rest {
             .post(body)
             .build()
 
-        processRequest(request,AgeGateStatus::class.java,completion)
+        processRequest(request,AgeGateResponse::class.java,completion)
+    }
+    fun getAgeServiceSettings(serviceIdentifier: String, completion: (AgeServiceSettings?) -> Unit) {
+        val url = PrivoInternal.configuration.ageGateBaseUrl
+            .toHttpUrl()
+            .newBuilder()
+            .addPathSegments("age-gate/settings")
+            .addQueryParameter("service_identifier",serviceIdentifier)
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        processRequest(request,AgeServiceSettings::class.java,completion)
     }
     fun generateFingerprint(fingerprint: DeviceFingerprint, completion: (DeviceFingerprintResponse?) -> Unit) {
         val url = PrivoInternal.configuration.authUrl
