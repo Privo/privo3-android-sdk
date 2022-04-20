@@ -10,6 +10,7 @@ internal data class CheckAgeStoreData(
     val settings: AgeServiceSettings,
     val userIdentifier: String?,
     val countryCode: String?,
+    val birthDateYYYYMMDD: String?,
     val redirectUrl: String?,
     val agId: String?,
     val fpId: String?,
@@ -19,5 +20,11 @@ internal data class CheckAgeStoreData(
 data class CheckAgeData(
     val userIdentifier: String?, // uniq user identifier
     val birthDateYYYYMMDD: String?, // "yyyy-MM-dd" format
+    val countryCode: String?, // Alpha-2 country code, e.g US
+)
+
+@JsonClass(generateAdapter = true)
+data class RecheckAgeData(
+    val userIdentifier: String?, // uniq user identifier
     val countryCode: String?, // Alpha-2 country code, e.g US
 )

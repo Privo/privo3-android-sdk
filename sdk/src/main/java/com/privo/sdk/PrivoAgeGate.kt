@@ -9,30 +9,44 @@ import com.privo.sdk.model.*
 class PrivoAgeGate(val context: Context) {
     private val ageGate = AgeGateInternal(context)
 
-    fun getAgeStatus(data: CheckAgeData, completionHandler:(AgeGateEvent?) -> Unit) {
+    fun getAgeStatus(userIdentifier: String?, completionHandler:(AgeGateEvent?) -> Unit) {
 
         // TODO: add pooling here
-        ageGate.getAgeGateEvent { lastEvent ->
-            if (lastEvent != null && lastEvent.userIdentifier == data.userIdentifier) {
-                completionHandler(lastEvent)
-            } else {
-                completionHandler(AgeGateEvent(AgeGateStatus.Undefined, agId = null, userIdentifier = data.userIdentifier))
-            }
+        ageGate.getStatusEvent(userIdentifier) { lastEvent ->
+            ageGate.storeAgeGateEvent(lastEvent)
+            completionHandler(lastEvent)
         }
     }
+
     fun run(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
 
-        fun processEvent(event: AgeGateEvent?) {
-            if (event != null) {
-                ageGate.storeAgeGateEvent(event)
-            }
-            completionHandler(event)
-        }
+        ageGate.getAgeGateEvent(data.userIdentifier) { lastEvent ->
 
-        if (data.birthDateYYYYMMDD != null) {
-            ageGate.runAgeGateByBirthDay(data) { processEvent(it) }
-        } else {
-            ageGate.runAgeGate(data) { processEvent(it) }
+                if (lastEvent != null &&
+                    lastEvent.status != AgeGateStatus.ConsentRequired &&
+                    lastEvent.status != AgeGateStatus.IdentityVerificationRequired &&
+                    lastEvent.status != AgeGateStatus.AgeVerificationRequired
+                ) {
+                    completionHandler(lastEvent)
+                } else {
+                    if (data.birthDateYYYYMMDD != null) {
+                        ageGate.runAgeGateByBirthDay(data) { event ->
+                            ageGate.storeAgeGateEvent(event)
+                            completionHandler(event)
+                        }
+                    } else {
+                        ageGate.runAgeGate(data, null) { event ->
+                            ageGate.storeAgeGateEvent(event)
+                            completionHandler(event)
+                        }
+                    }
+                }
+        }
+    }
+    fun recheck(data: RecheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
+        ageGate.runAgeGateRecheck(data) { event ->
+            ageGate.storeAgeGateEvent(event)
+            completionHandler(event)
         }
     }
     fun hide() = ageGate.hide()

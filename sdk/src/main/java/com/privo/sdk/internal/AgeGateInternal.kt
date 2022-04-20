@@ -3,6 +3,7 @@ package com.privo.sdk.internal
 import android.content.Context
 import android.content.SharedPreferences
 import com.privo.sdk.extensions.toEvent
+import com.privo.sdk.extensions.toStatus
 import com.privo.sdk.model.*
 import com.privo.sdk.model.AgeGateEventInternal
 import com.privo.sdk.model.CheckAgeStoreData
@@ -12,7 +13,7 @@ import com.squareup.moshi.Moshi
 
 internal class AgeGateInternal(val context: Context) {
     private val FP_ID = "PrivoFpId"
-    private val EVENT_ID = "PrivoAgeEventId"
+    private val AGE_EVENT_KEY_PREFIX = "PrivoAgeGateEvent"
     private val preferences: SharedPreferences = context.getSharedPreferences(PrivoPreferenceKey, Context.MODE_PRIVATE)
     private val moshi: Moshi = Moshi
         .Builder()
@@ -25,9 +26,6 @@ internal class AgeGateInternal(val context: Context) {
     private var serviceSettings: AgeServiceSettings? = null
 
     init {
-        PrivoInternal.rest.getAgeServiceSettings(PrivoInternal.settings.serviceIdentifier) { s ->
-            serviceSettings = s
-        }
     }
 
     private fun storeValue(value: String?, key: String) {
@@ -59,16 +57,24 @@ internal class AgeGateInternal(val context: Context) {
         }
     }
 
-    internal fun storeAgeGateEvent(event: AgeGateEvent) {
-        val eventAdapter = moshi.adapter(AgeGateEvent::class.java)
-        val eventString = eventAdapter.toJson(event)
-        storeValue(eventString, EVENT_ID)
+    internal fun storeAgeGateEvent(event: AgeGateEvent?) {
+        if (event !== null && event.status != AgeGateStatus.Canceled && event.status != AgeGateStatus.Undefined) {
+            val eventAdapter = moshi.adapter(AgeGateEvent::class.java)
+            val eventString = eventAdapter.toJson(event)
+            val key = "${AGE_EVENT_KEY_PREFIX}-${event.userIdentifier ?: '0'}"
+            storeValue(eventString, key)
+        }
     }
-    internal fun getAgeGateEvent(completion: (AgeGateEvent?) -> Unit) {
-        preferences.getString(EVENT_ID,null)?.let { eventString ->
+    internal fun getAgeGateEvent(userIdentifier: String?, completion: (AgeGateEvent?) -> Unit) {
+        val key = "${AGE_EVENT_KEY_PREFIX}-${userIdentifier ?: '0'}"
+        preferences.getString(key,null)?.let { eventString ->
             val adapter = moshi.adapter(AgeGateEvent::class.java)
             val event = adapter.fromJson(eventString)
-            completion(event)
+            if (event?.userIdentifier == userIdentifier) {
+                completion(event);
+            } else {
+                completion(event)
+            }
         } ?: run {
             completion(null)
         }
@@ -82,17 +88,59 @@ internal class AgeGateInternal(val context: Context) {
                 return AgeGateStatus.Blocked
             }
             AgeGateAction.Consent -> {
-                return AgeGateStatus.Blocked
+                return AgeGateStatus.ConsentRequired
             }
-            AgeGateAction.Verify -> {
-                return AgeGateStatus.Pending
+            AgeGateAction.IdentityVerify -> {
+                return AgeGateStatus.IdentityVerificationRequired
             }
             else -> {
                 return AgeGateStatus.Undefined
             }
         }
     }
-    internal fun runAgeGateByBirthDay(data: CheckAgeData, completionHandler: (AgeGateEvent?) -> Unit) {
+
+    internal fun getStatusEvent(userIdentifier: String?, completionHandler:(AgeGateEvent) -> Unit) {
+        getAgeGateEvent(userIdentifier) { lastEvent ->
+            getFpId { fpId->
+                val agId = lastEvent?.agId;
+                if (agId != null && fpId != null) {
+                    val record = StatusRecord(
+                        PrivoInternal.settings.serviceIdentifier,
+                        fpId,
+                        agId,
+                        userIdentifier
+                    )
+                    PrivoInternal.rest.processStatus(record) { response ->
+                        if (response != null) {
+                            val event = AgeGateEvent(response.toStatus(), userIdentifier, agId)
+                            completionHandler(event)
+                        } else {
+                            completionHandler(
+                                AgeGateEvent(
+                                    AgeGateStatus.Undefined,
+                                    userIdentifier,
+                                    agId
+                                )
+                            )
+                        }
+                    }
+                } else {
+                    completionHandler(
+                        AgeGateEvent(
+                            lastEvent?.status ?: AgeGateStatus.Undefined,
+                            userIdentifier,
+                            lastEvent?.agId
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    internal fun runAgeGateByBirthDay(
+        data: CheckAgeData,
+        completionHandler: (AgeGateEvent?) -> Unit
+    ) {
         getFpId { fpId ->
             val birthDateYYYMMDD = data.birthDateYYYYMMDD
             if (fpId != null && birthDateYYYMMDD != null) {
@@ -107,7 +155,16 @@ internal class AgeGateInternal(val context: Context) {
                     if (response != null) {
                         val status = toStatus(response.action)
                         val event = AgeGateEvent(status,data.userIdentifier,response.ageGateIdentifier)
-                        completionHandler(event)
+
+                        if (
+                            response.action == AgeGateAction.Consent ||
+                            response.action == AgeGateAction.IdentityVerify ||
+                            response.action == AgeGateAction.AgeVerify
+                        ) {
+                            runAgeGate(data,event,completionHandler)
+                        } else {
+                            completionHandler(event)
+                        }
                     } else {
                         completionHandler(null)
                     }
@@ -115,14 +172,12 @@ internal class AgeGateInternal(val context: Context) {
             }
         }
     }
-    private fun prepareSettings(completionHandler: (Triple<AgeServiceSettings?,String?, AgeGateEvent?>) -> Unit) {
+    private fun prepareSettings(completionHandler: (Pair<AgeServiceSettings?,String??>) -> Unit) {
         var settings: AgeServiceSettings? = serviceSettings
         var fpId: String? = null
-        var lastEvent: AgeGateEvent? = null
 
-
-        val group = DispatchGroup(3) {
-            completionHandler(Triple(settings,fpId,lastEvent))
+        val group = DispatchGroup(2) {
+            completionHandler(Pair(settings,fpId))
         }
         if (settings == null) {
             PrivoInternal.rest.getAgeServiceSettings(PrivoInternal.settings.serviceIdentifier) { s ->
@@ -136,14 +191,11 @@ internal class AgeGateInternal(val context: Context) {
             fpId = r
             group.leave()
         }
-        getAgeGateEvent { event ->
-            lastEvent = event
-            group.leave()
-        }
     }
 
     private fun storeState(data: CheckAgeStoreData, completion: (String?) -> Unit ) =
         PrivoInternal.rest.addObjectToTMPStorage(data, CheckAgeStoreData::class.java, completion)
+
 
     private fun getStatusTargetPage(status: AgeGateStatus?): String {
         return when (status) {
@@ -153,36 +205,46 @@ internal class AgeGateInternal(val context: Context) {
             AgeGateStatus.Blocked -> {
                 "sorry"
             }
-            else -> {
+            AgeGateStatus.ConsentRequired -> {
+                "request-consent"
+            }
+            AgeGateStatus.AgeVerificationRequired -> {
+                "request-consent"
+            }
+            AgeGateStatus.IdentityVerificationRequired -> {
+                "request-verification"
+            } else -> {
                 "dob"
             }
         }
     };
 
-    internal fun runAgeGate(data: CheckAgeData, completion: (AgeGateEvent?) -> Unit) {
-
+    internal fun runAgeGate(
+        data: CheckAgeData,
+        lastEvent: AgeGateEvent?,
+        completion: (AgeGateEvent?) -> Unit
+    ) {
         prepareSettings { pSettings ->
 
             val settings = pSettings.first
             val fpId = pSettings.second
-            val lastEvent = pSettings.third
 
             if (settings != null) {
-                val agId = if (lastEvent?.userIdentifier ==  data.userIdentifier)  lastEvent?.agId else null
-                val status = if (lastEvent?.userIdentifier == data.userIdentifier) lastEvent?.status else null
-
+                val agId = lastEvent?.agId
+                val status = lastEvent?.status
                 val ageGateData = CheckAgeStoreData(
                     serviceIdentifier = PrivoInternal.settings.serviceIdentifier,
                     settings = settings,
                     userIdentifier =  data.userIdentifier,
                     countryCode = data.countryCode,
-                    redirectUrl = PrivoInternal.configuration.ageGatePublicUrl.plus("/#/age-gate-loading"),
+                    birthDateYYYYMMDD = data.birthDateYYYYMMDD,
+                    redirectUrl = PrivoInternal.configuration.ageGatePublicUrl.plus("/index.html#/age-gate-loading"),
                     agId = agId,
                     fpId = fpId
                 )
 
                 storeState(ageGateData) { stateId ->
-                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/?privo_state_id=${stateId}#/${getStatusTargetPage(status)}"
+                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}#/${getStatusTargetPage(status)}"
                     val config = WebViewConfig(
                         url = ageUrl,
                         finishCriteria = "age-gate-loading",
@@ -205,6 +267,63 @@ internal class AgeGateInternal(val context: Context) {
                     activePrivoWebViewDialog?.show()
                 }
 
+            }
+        }
+    }
+
+    internal fun runAgeGateRecheck(
+        data: RecheckAgeData,
+        completion: (AgeGateEvent?) -> Unit
+    ) {
+
+        getAgeGateEvent(data.userIdentifier) { lastEvent ->
+            prepareSettings { pSettings ->
+
+                val settings = pSettings.first
+                val fpId = pSettings.second
+
+                if (settings != null) {
+                    val agId = lastEvent?.agId
+                    val ageGateData = CheckAgeStoreData(
+                        serviceIdentifier = PrivoInternal.settings.serviceIdentifier,
+                        settings = settings,
+                        userIdentifier = data.userIdentifier,
+                        countryCode = data.countryCode,
+                        birthDateYYYYMMDD = null,
+                        redirectUrl = PrivoInternal.configuration.ageGatePublicUrl.plus("/index.html#/age-gate-loading"),
+                        agId = agId,
+                        fpId = fpId
+                    )
+
+                    storeState(ageGateData) { stateId ->
+                        val ageUrl =
+                            "${PrivoInternal.configuration.ageGatePublicUrl}/?privo_age_gate_state_id=${stateId}#/recheck"
+                        val config = WebViewConfig(
+                            url = ageUrl,
+                            finishCriteria = "age-gate-loading",
+                            onFinish = { url ->
+                                url.getQueryParameter("privo_age_gate_events_id")?.let { eventId ->
+                                    PrivoInternal.rest.getObjectFromTMPStorage(
+                                        eventId,
+                                        Array<AgeGateEventInternal>::class.java
+                                    ) { events ->
+                                        activePrivoWebViewDialog?.hide()
+                                        events?.mapNotNull { it.toEvent() }?.forEach { event ->
+                                            completion(event)
+                                        } ?: run {
+                                            completion(null)
+                                        }
+                                    }
+                                } ?: run {
+                                    completion(null)
+                                }
+                            }
+                        )
+                        activePrivoWebViewDialog = PrivoWebViewDialog(context, config)
+                        activePrivoWebViewDialog?.show()
+                    }
+
+                }
             }
         }
     }

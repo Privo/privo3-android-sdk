@@ -6,7 +6,7 @@ import com.privo.sdk.model.AgeGateStatus
 import com.privo.sdk.model.AgeGateStatusInternal
 
 internal fun AgeGateEventInternal.toEvent(): AgeGateEvent? {
-    return if (this.status == AgeGateStatusInternal.CloseAgeGate || this.status == AgeGateStatusInternal.OpenVerification) {
+    return if (this.status == AgeGateStatusInternal.Closed) {
         // Skip internal statuses
         null
     } else {

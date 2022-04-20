@@ -27,6 +27,7 @@ class Rest {
         .add(AgeGateActionAdapter())
         .add(AgeGateStatusInternalAdapter())
         .add(AgeGateStatusAdapter())
+        .add(AgeGateStatusTOAdapter())
         .build()
     private val JSON : MediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -124,30 +125,14 @@ class Rest {
         val valueString = valueAdapter.toJson(value)
         addStringToTMPStorage(valueString,completion)
     }
-    fun processAgStatus(data: AgStatusRecord, completion: (AgeGateResponse?) -> Unit) {
-        val url = PrivoInternal.configuration.ageGateBaseUrl
-            .toHttpUrl()
-            .newBuilder()
-            .addPathSegments("age-gate/status/ag-id")
-            .build()
-        val adapter = moshi.adapter(AgStatusRecord::class.java)
-        val body = adapter
-            .toJson(data)
-            .toRequestBody(JSON)
-        val request = Request.Builder()
-            .url(url)
-            .put(body)
-            .build()
-        processRequest(request,AgeGateResponse::class.java,completion)
-    }
 
-    fun processFpStatus(data: FpStatusRecord, completion: (AgeGateResponse?) -> Unit) {
+    fun processStatus(data: StatusRecord, completion: (AgeGateStatusTO?) -> Unit) {
         val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
             .newBuilder()
-            .addPathSegments("age-gate/status/fp-id")
+            .addPathSegments("age-gate/status")
             .build()
-        val adapter = moshi.adapter(FpStatusRecord::class.java)
+        val adapter = moshi.adapter(StatusRecord::class.java)
         val body = adapter
             .toJson(data)
             .toRequestBody(JSON)
@@ -156,8 +141,9 @@ class Rest {
             .put(body)
             .build()
 
-        processRequest(request,AgeGateResponse::class.java,completion)
+        processRequest(request,AgeGateStatusTO::class.java,completion)
     }
+
     fun processBirthDate(data: FpStatusRecord, completion: (AgeGateResponse?) -> Unit) {
         val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
@@ -175,6 +161,25 @@ class Rest {
 
         processRequest(request,AgeGateResponse::class.java,completion)
     }
+
+    fun processRecheck(data: RecheckStatusRecord, completion: (AgeGateRecheckResponse?) -> Unit) {
+        val url = PrivoInternal.configuration.ageGateBaseUrl
+            .toHttpUrl()
+            .newBuilder()
+            .addPathSegments("age-gate/recheck")
+            .build()
+        val adapter = moshi.adapter(RecheckStatusRecord::class.java)
+        val body = adapter
+            .toJson(data)
+            .toRequestBody(JSON)
+        val request = Request.Builder()
+            .url(url)
+            .post(body)
+            .build()
+
+        processRequest(request,AgeGateRecheckResponse::class.java,completion)
+    }
+
     fun getAgeServiceSettings(serviceIdentifier: String, completion: (AgeServiceSettings?) -> Unit) {
         val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
