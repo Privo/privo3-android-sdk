@@ -18,15 +18,47 @@ internal class AgeGateStatusInternalAdapter {
 
 internal enum class AgeGateStatusInternal(val status: String) {
     Undefined("Undefined"),
-    Blocked ("Blocked"),
-    Allowed ("Allowed"),
-    Canceled ("Canceled"),
-    ConsentApproved ("Consent Approved"),
-    ConsentDeclined ("Consent Declined"),
+    Blocked("Blocked"),
+    Allowed("Allowed"),
+    Pending("Pending"),
+    ConsentRequired("ConsentRequired"),
+    ConsentApproved("ConsentApproved"),
+    ConsentDenied("ConsentDenied"),
+    IdentityVerificationRequired("IdentityVerificationRequired"),
+    IdentityVerified("IdentityVerified"),
+    AgeVerificationRequired("AgeVerificationRequired"),
+    AgeVerified("AgeVerified"),
+    AgeBlocked("AgeBlocked"),
+    Canceled("Canceled"),
 
     // Internal statuses
-    OpenVerification ("open-verification-widget"),
-    CloseAgeGate ("close-age-gate-widget"),
+    Closed ("Closed"),
+}
+
+internal class AgeGateStatusTOAdapter {
+    @ToJson
+    fun toJson(enum: AgeGateStatusTO): Int {
+        return enum.status
+    }
+
+    @FromJson
+    fun fromJson(enum: Int): AgeGateStatusTO {
+        return AgeGateStatusTO.values().first { it.status == enum }
+    }
+}
+enum class AgeGateStatusTO(val status: Int) {
+    Undefined(0),
+    Pending(1),
+    Allowed(2),
+    Blocked(3),
+    ConsentRequired(4),
+    ConsentApproved(5),
+    ConsentDenied(6),
+    IdentityVerificationRequired(7),
+    IdentityVerified(8),
+    AgeVerificationRequired(9),
+    AgeVerified(10),
+    AgeBlocked(11),
 }
 
 class AgeGateStatusAdapter {
@@ -45,8 +77,14 @@ enum class AgeGateStatus(val status: String) {
     Undefined("Undefined"),
     Blocked("Blocked"),
     Allowed("Allowed"),
-    Canceled("Canceled"),
     Pending("Pending"),
-    ConsentApproved("Consent Approved"),
-    ConsentDeclined("Consent Declined"),
+    ConsentRequired("ConsentRequired"),
+    ConsentApproved("ConsentApproved"),
+    ConsentDenied("ConsentDenied"),
+    IdentityVerificationRequired("IdentityVerificationRequired"),
+    IdentityVerified("IdentityVerified"),
+    AgeVerificationRequired("AgeVerificationRequired"),
+    AgeVerified("AgeVerified"),
+    AgeBlocked("AgeBlocked"),
+    Canceled("Canceled"),
 }
