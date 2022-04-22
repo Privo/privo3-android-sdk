@@ -22,9 +22,3 @@ data class CheckAgeData(
     val birthDateYYYYMMDD: String?, // "yyyy-MM-dd" format
     val countryCode: String?, // Alpha-2 country code, e.g US
 )
-
-@JsonClass(generateAdapter = true)
-data class RecheckAgeData(
-    val userIdentifier: String?, // uniq user identifier
-    val countryCode: String?, // Alpha-2 country code, e.g US
-)

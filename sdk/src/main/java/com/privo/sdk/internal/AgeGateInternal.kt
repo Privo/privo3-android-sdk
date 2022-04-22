@@ -15,6 +15,7 @@ internal class AgeGateInternal(val context: Context) {
     private val FP_ID = "PrivoFpId"
     private val AGE_EVENT_KEY_PREFIX = "PrivoAgeGateEvent"
     private val preferences: SharedPreferences = context.getSharedPreferences(PrivoPreferenceKey, Context.MODE_PRIVATE)
+    private var serviceSettings = AgeSettingsInternal()
     private val moshi: Moshi = Moshi
         .Builder()
         .add(VerificationMethodTypeAdapter())
@@ -23,7 +24,6 @@ internal class AgeGateInternal(val context: Context) {
         .add(AgeGateActionAdapter())
         .build()
     private var activePrivoWebViewDialog: PrivoWebViewDialog? = null
-    private var serviceSettings: AgeServiceSettings? = null
 
     init {
     }
@@ -58,22 +58,39 @@ internal class AgeGateInternal(val context: Context) {
     }
 
     internal fun storeAgeGateEvent(event: AgeGateEvent?) {
+
+        fun getEventExpiration(interval: Int): Long {
+            return if (event?.status == AgeGateStatus.Pending) {
+                // Pending Events are always expired and should be re-fetched
+                System.currentTimeMillis()
+            } else {
+                (System.currentTimeMillis() + (interval * 1000))
+            }
+        };
+
         if (event !== null && event.status != AgeGateStatus.Canceled && event.status != AgeGateStatus.Undefined) {
-            val eventAdapter = moshi.adapter(AgeGateEvent::class.java)
-            val eventString = eventAdapter.toJson(event)
-            val key = "${AGE_EVENT_KEY_PREFIX}-${event.userIdentifier ?: '0'}"
-            storeValue(eventString, key)
+            serviceSettings.getSettings { settings ->
+                val interval = settings.poolAgeGateStatusInterval
+                val expireEvent = AgeGateExpireEvent(event, getEventExpiration(interval))
+
+                val eventAdapter = moshi.adapter(AgeGateExpireEvent::class.java)
+                val eventString = eventAdapter.toJson(expireEvent)
+                val key = "${AGE_EVENT_KEY_PREFIX}-${event.userIdentifier ?: '0'}"
+                storeValue(eventString, key)
+            }
         }
     }
-    internal fun getAgeGateEvent(userIdentifier: String?, completion: (AgeGateEvent?) -> Unit) {
+    internal fun getAgeGateEvent(userIdentifier: String?, completion: (AgeGateIsExpireEvent?) -> Unit) {
         val key = "${AGE_EVENT_KEY_PREFIX}-${userIdentifier ?: '0'}"
         preferences.getString(key,null)?.let { eventString ->
-            val adapter = moshi.adapter(AgeGateEvent::class.java)
-            val event = adapter.fromJson(eventString)
-            if (event?.userIdentifier == userIdentifier) {
+            val adapter = moshi.adapter(AgeGateExpireEvent::class.java)
+            val expireEvent = adapter.fromJson(eventString)
+
+            if (expireEvent != null) {
+                val event = AgeGateIsExpireEvent(expireEvent.event, expireEvent.expires < System.currentTimeMillis())
                 completion(event);
-            } else {
-                completion(event)
+            }else {
+                completion(null)
             }
         } ?: run {
             completion(null)
@@ -100,7 +117,13 @@ internal class AgeGateInternal(val context: Context) {
     }
 
     internal fun getStatusEvent(userIdentifier: String?, completionHandler:(AgeGateEvent) -> Unit) {
-        getAgeGateEvent(userIdentifier) { lastEvent ->
+        getAgeGateEvent(userIdentifier) { expireEvent ->
+            if (expireEvent != null && !expireEvent?.isExpire) {
+                // Force return event if we found non-expired one
+                completionHandler(expireEvent.event)
+                return@getAgeGateEvent
+            }
+            val lastEvent = expireEvent?.event
             getFpId { fpId->
                 val agId = lastEvent?.agId;
                 if (agId != null && fpId != null) {
@@ -173,18 +196,14 @@ internal class AgeGateInternal(val context: Context) {
         }
     }
     private fun prepareSettings(completionHandler: (Pair<AgeServiceSettings?,String??>) -> Unit) {
-        var settings: AgeServiceSettings? = serviceSettings
+        var settings: AgeServiceSettings? = null
         var fpId: String? = null
 
         val group = DispatchGroup(2) {
             completionHandler(Pair(settings,fpId))
         }
-        if (settings == null) {
-            PrivoInternal.rest.getAgeServiceSettings(PrivoInternal.settings.serviceIdentifier) { s ->
-                settings = s
-                group.leave()
-            }
-        } else {
+        serviceSettings.getSettings { s ->
+            settings = s
             group.leave()
         }
         getFpId { r ->
@@ -272,18 +291,18 @@ internal class AgeGateInternal(val context: Context) {
     }
 
     internal fun runAgeGateRecheck(
-        data: RecheckAgeData,
+        data: CheckAgeData,
         completion: (AgeGateEvent?) -> Unit
     ) {
 
-        getAgeGateEvent(data.userIdentifier) { lastEvent ->
+        getAgeGateEvent(data.userIdentifier) { expireEvent ->
             prepareSettings { pSettings ->
 
                 val settings = pSettings.first
                 val fpId = pSettings.second
 
                 if (settings != null) {
-                    val agId = lastEvent?.agId
+                    val agId = expireEvent?.event?.agId
                     val ageGateData = CheckAgeStoreData(
                         serviceIdentifier = PrivoInternal.settings.serviceIdentifier,
                         settings = settings,

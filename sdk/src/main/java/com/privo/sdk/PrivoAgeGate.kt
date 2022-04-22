@@ -20,8 +20,8 @@ class PrivoAgeGate(val context: Context) {
 
     fun run(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
 
-        ageGate.getAgeGateEvent(data.userIdentifier) { lastEvent ->
-
+        ageGate.getAgeGateEvent(data.userIdentifier) { expireEvent ->
+            val lastEvent = expireEvent?.event
                 if (lastEvent != null &&
                     lastEvent.status != AgeGateStatus.ConsentRequired &&
                     lastEvent.status != AgeGateStatus.IdentityVerificationRequired &&
@@ -43,7 +43,7 @@ class PrivoAgeGate(val context: Context) {
                 }
         }
     }
-    fun recheck(data: RecheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
+    fun recheck(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
         ageGate.runAgeGateRecheck(data) { event ->
             ageGate.storeAgeGateEvent(event)
             completionHandler(event)
