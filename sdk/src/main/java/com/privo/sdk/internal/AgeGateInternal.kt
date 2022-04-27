@@ -184,7 +184,7 @@ internal class AgeGateInternal(val context: Context) {
                             response.action == AgeGateAction.IdentityVerify ||
                             response.action == AgeGateAction.AgeVerify
                         ) {
-                            runAgeGate(data,event,completionHandler)
+                            runAgeGate(data,event,false,completionHandler)
                         } else {
                             completionHandler(event)
                         }
@@ -194,6 +194,39 @@ internal class AgeGateInternal(val context: Context) {
                 }
             }
         }
+    }
+    internal fun recheckAgeGateByBirthDay(
+        data: CheckAgeData,
+        lastEvent: AgeGateEvent,
+        completionHandler: (AgeGateEvent?) -> Unit
+    ) {
+            val birthDateYYYMMDD = data.birthDateYYYYMMDD
+            val agId = lastEvent.agId
+            if (agId != null && birthDateYYYMMDD != null) {
+                val record = RecheckStatusRecord(
+                    PrivoInternal.settings.serviceIdentifier,
+                    agId,
+                    birthDateYYYMMDD,
+                    data.countryCode
+                )
+                PrivoInternal.rest.processRecheck(record) { response ->
+                    if (response != null) {
+                        val status = toStatus(response.action)
+                        val event = AgeGateEvent(status,data.userIdentifier,agId)
+                        if (
+                            response.action == AgeGateAction.Consent ||
+                            response.action == AgeGateAction.IdentityVerify ||
+                            response.action == AgeGateAction.AgeVerify
+                        ) {
+                            runAgeGate(data,event,false,completionHandler)
+                        } else {
+                            completionHandler(event)
+                        }
+                    } else {
+                        completionHandler(null)
+                    }
+                }
+            }
     }
     private fun prepareSettings(completionHandler: (Pair<AgeServiceSettings?,String??>) -> Unit) {
         var settings: AgeServiceSettings? = null
@@ -216,7 +249,10 @@ internal class AgeGateInternal(val context: Context) {
         PrivoInternal.rest.addObjectToTMPStorage(data, CheckAgeStoreData::class.java, completion)
 
 
-    private fun getStatusTargetPage(status: AgeGateStatus?): String {
+    private fun getStatusTargetPage(status: AgeGateStatus?, recheckRequired: Boolean): String {
+        if(recheckRequired) {
+            return "recheck"
+        }
         return when (status) {
             AgeGateStatus.Pending -> {
                 "verification-pending"
@@ -241,6 +277,7 @@ internal class AgeGateInternal(val context: Context) {
     internal fun runAgeGate(
         data: CheckAgeData,
         lastEvent: AgeGateEvent?,
+        recheckRequired: Boolean,
         completion: (AgeGateEvent?) -> Unit
     ) {
         prepareSettings { pSettings ->
@@ -263,7 +300,7 @@ internal class AgeGateInternal(val context: Context) {
                 )
 
                 storeState(ageGateData) { stateId ->
-                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}#/${getStatusTargetPage(status)}"
+                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}#/${getStatusTargetPage(status,recheckRequired)}"
                     val config = WebViewConfig(
                         url = ageUrl,
                         finishCriteria = "age-gate-loading",
@@ -286,63 +323,6 @@ internal class AgeGateInternal(val context: Context) {
                     activePrivoWebViewDialog?.show()
                 }
 
-            }
-        }
-    }
-
-    internal fun runAgeGateRecheck(
-        data: CheckAgeData,
-        completion: (AgeGateEvent?) -> Unit
-    ) {
-
-        getAgeGateEvent(data.userIdentifier) { expireEvent ->
-            prepareSettings { pSettings ->
-
-                val settings = pSettings.first
-                val fpId = pSettings.second
-
-                if (settings != null) {
-                    val agId = expireEvent?.event?.agId
-                    val ageGateData = CheckAgeStoreData(
-                        serviceIdentifier = PrivoInternal.settings.serviceIdentifier,
-                        settings = settings,
-                        userIdentifier = data.userIdentifier,
-                        countryCode = data.countryCode,
-                        birthDateYYYYMMDD = null,
-                        redirectUrl = PrivoInternal.configuration.ageGatePublicUrl.plus("/index.html#/age-gate-loading"),
-                        agId = agId,
-                        fpId = fpId
-                    )
-
-                    storeState(ageGateData) { stateId ->
-                        val ageUrl =
-                            "${PrivoInternal.configuration.ageGatePublicUrl}/?privo_age_gate_state_id=${stateId}#/recheck"
-                        val config = WebViewConfig(
-                            url = ageUrl,
-                            finishCriteria = "age-gate-loading",
-                            onFinish = { url ->
-                                url.getQueryParameter("privo_age_gate_events_id")?.let { eventId ->
-                                    PrivoInternal.rest.getObjectFromTMPStorage(
-                                        eventId,
-                                        Array<AgeGateEventInternal>::class.java
-                                    ) { events ->
-                                        activePrivoWebViewDialog?.hide()
-                                        events?.mapNotNull { it.toEvent() }?.forEach { event ->
-                                            completion(event)
-                                        } ?: run {
-                                            completion(null)
-                                        }
-                                    }
-                                } ?: run {
-                                    completion(null)
-                                }
-                            }
-                        )
-                        activePrivoWebViewDialog = PrivoWebViewDialog(context, config)
-                        activePrivoWebViewDialog?.show()
-                    }
-
-                }
             }
         }
     }

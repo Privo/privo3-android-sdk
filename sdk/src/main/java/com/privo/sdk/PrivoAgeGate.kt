@@ -35,7 +35,7 @@ class PrivoAgeGate(val context: Context) {
                             completionHandler(event)
                         }
                     } else {
-                        ageGate.runAgeGate(data, null) { event ->
+                        ageGate.runAgeGate(data, null, false) { event ->
                             ageGate.storeAgeGateEvent(event)
                             completionHandler(event)
                         }
@@ -44,9 +44,21 @@ class PrivoAgeGate(val context: Context) {
         }
     }
     fun recheck(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
-        ageGate.runAgeGateRecheck(data) { event ->
-            ageGate.storeAgeGateEvent(event)
-            completionHandler(event)
+        ageGate.getAgeGateEvent(data.userIdentifier) { expireEvent ->
+            val event = expireEvent?.event;
+            if (event?.agId != null) {
+                if (data.birthDateYYYYMMDD != null) {
+                    ageGate.recheckAgeGateByBirthDay(data,event) { newEvent ->
+                        ageGate.storeAgeGateEvent(newEvent)
+                        completionHandler(newEvent)
+                    }
+                } else {
+                    ageGate.runAgeGate(data,event,true) { newEvent ->
+                        ageGate.storeAgeGateEvent(newEvent)
+                        completionHandler(newEvent)
+                    }
+                }
+            }
         }
     }
     fun hide() = ageGate.hide()

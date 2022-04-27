@@ -11,5 +11,4 @@ data class AgeGateResponse(
 @JsonClass(generateAdapter = true)
 data class AgeGateRecheckResponse(
     val action: AgeGateAction
-
 )

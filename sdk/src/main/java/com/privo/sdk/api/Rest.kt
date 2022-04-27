@@ -174,7 +174,7 @@ class Rest {
             .toRequestBody(JSON)
         val request = Request.Builder()
             .url(url)
-            .post(body)
+            .put(body)
             .build()
 
         processRequest(request,AgeGateRecheckResponse::class.java,completion)
