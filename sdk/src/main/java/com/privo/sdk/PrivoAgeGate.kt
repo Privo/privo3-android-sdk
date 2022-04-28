@@ -1,118 +1,65 @@
 package com.privo.sdk
 
 import android.content.Context
-import android.content.SharedPreferences
-import com.privo.sdk.internal.PrivoInternal
-import com.privo.sdk.internal.PrivoPreferenceKey
+import com.privo.sdk.internal.AgeGateInternal
 import com.privo.sdk.model.*
-import java.text.SimpleDateFormat
-import java.util.*
+
+
 
 class PrivoAgeGate(val context: Context) {
-    private val ageGate = InternalAgeGate(context)
-    private val verification = PrivoVerification(context)
+    private val ageGate = AgeGateInternal(context)
 
-    fun getAgeStatus(extUserId: String?, countryCode: String?, completion:(AgeGateStatus?) -> Unit) {
-        ageGate.getStoredAgId()?.let { agId ->
-            val record = AgStatusRecord(PrivoInternal.settings.serviceIdentifier,agId, extUserId, countryCode)
-            PrivoInternal.rest.processAgStatus(record) {
-                val id = it?.ageGateIdentifier
-                ageGate.storeAgId(id)
-                if (!id.isNullOrEmpty()) {
-                    completion(it)
+    fun getAgeStatus(userIdentifier: String?, completionHandler:(AgeGateEvent?) -> Unit) {
+
+        // TODO: add pooling here
+        ageGate.getStatusEvent(userIdentifier) { lastEvent ->
+            ageGate.storeAgeGateEvent(lastEvent)
+            completionHandler(lastEvent)
+        }
+    }
+
+    fun run(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
+
+        ageGate.getAgeGateEvent(data.userIdentifier) { expireEvent ->
+            val lastEvent = expireEvent?.event
+                if (lastEvent != null &&
+                    lastEvent.status != AgeGateStatus.ConsentRequired &&
+                    lastEvent.status != AgeGateStatus.IdentityVerificationRequired &&
+                    lastEvent.status != AgeGateStatus.AgeVerificationRequired
+                ) {
+                    completionHandler(lastEvent)
                 } else {
-                    ageGate.getFpStatus(extUserId,countryCode,completion)
-                }
-            }
-        } ?: run {
-            ageGate.getFpStatus(extUserId,countryCode,completion)
-        }
-    }
-    fun getAgeStatusByBirthDate(
-        birthDateYYYYMMDD: String, // "yyyy-MM-dd" format
-        extUserId: String?,
-        countryCode: String?,
-        completion:(AgeGateStatus?) -> Unit
-    ) {
-        ageGate.getFpId { fpId ->
-            fpId?.let { id ->
-                val record = FpStatusRecord(PrivoInternal.settings.serviceIdentifier,id,birthDateYYYYMMDD,extUserId,countryCode)
-                PrivoInternal.rest.processBirthDate(record) {
-                    it?.ageGateIdentifier?.let { agId ->
-                        ageGate.storeAgId(agId)
+                    if (data.birthDateYYYYMMDD != null) {
+                        ageGate.runAgeGateByBirthDay(data) { event ->
+                            ageGate.storeAgeGateEvent(event)
+                            completionHandler(event)
+                        }
+                    } else {
+                        ageGate.runAgeGate(data, null, false) { event ->
+                            ageGate.storeAgeGateEvent(event)
+                            completionHandler(event)
+                        }
                     }
-                    completion(it)
                 }
-            }  ?: run {
-                completion(null)
-            }
         }
     }
-    fun verifyStatus(ageGateIdentifier: String, completion: (AgeGateStatus?) -> Unit) {
-        val profile = UserVerificationProfile(partnerDefinedUniqueID = "AG:$ageGateIdentifier")
-        verification.showVerification(profile) { events ->
-            val status = ageGate.getVerificationStatus(events,ageGateIdentifier)
-            completion(status)
-        }
-    }
-}
-
-internal class InternalAgeGate(val context: Context) {
-    internal val AG_ID = "privoAgId_1"
-    internal val FP_ID = "privoFpId_1"
-    private val preferences: SharedPreferences = context.getSharedPreferences(PrivoPreferenceKey, Context.MODE_PRIVATE)
-
-    internal fun getFpId(completion: (String?) -> Unit) {
-        getStoredFpId()?.let {
-            completion(it)
-        } ?: run {
-            try {
-                val fingerprint = DeviceFingerprintBuilder(context).build()
-                PrivoInternal.rest.generateFingerprint(fingerprint) {
-                    val fpId = it?.id
-                    fpId?.let { id ->
-                        storeFpId(id)
+    fun recheck(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
+        ageGate.getAgeGateEvent(data.userIdentifier) { expireEvent ->
+            val event = expireEvent?.event;
+            if (event?.agId != null) {
+                if (data.birthDateYYYYMMDD != null) {
+                    ageGate.recheckAgeGateByBirthDay(data,event) { newEvent ->
+                        ageGate.storeAgeGateEvent(newEvent)
+                        completionHandler(newEvent)
                     }
-                    completion(fpId)
-                }
-            } catch (e: Exception) {
-                completion(null)
-            }
-        }
-    }
-    internal fun getFpStatus(extUserId: String?, countryCode: String?, completion: (AgeGateStatus?) -> Unit) {
-        getFpId {
-            it?.let { fpId ->
-                val record = FpStatusRecord(PrivoInternal.settings.serviceIdentifier, fpId, null, extUserId, countryCode)
-                PrivoInternal.rest.processFpStatus(record) { status ->
-                    status?.ageGateIdentifier?.let { id ->
-                        storeAgId(id)
+                } else {
+                    ageGate.runAgeGate(data,event,true) { newEvent ->
+                        ageGate.storeAgeGateEvent(newEvent)
+                        completionHandler(newEvent)
                     }
-                    completion(status)
                 }
-            } ?: run {
-                completion(null)
             }
-
         }
     }
-    internal fun getVerificationStatus(events: Array<VerificationEvent>, ageGateIdentifier: String): AgeGateStatus? {
-        val acceptedVerification = events.firstOrNull {it.result?.verificationResponse?.matchOutcome == VerificationOutcome.Pass};
-        return if (acceptedVerification != null) {
-            AgeGateStatus(AgeGateAction.Allow, ageGateIdentifier)
-        } else {
-            null
-        }
-    }
-    internal fun getStoredAgId () = preferences.getString(AG_ID,null)
-    internal fun getStoredFpId () = preferences.getString(FP_ID,null);
-    internal fun storeAgId (id: String?) = storeId(id, AG_ID)
-    internal fun storeFpId (id: String?) = storeId(id, FP_ID)
-    private fun storeId(id: String?, key: String) {
-        id?.let {
-            preferences.edit().putString(key, it).apply()
-        } ?: run {
-            preferences.edit().remove(key).apply()
-        }
-    }
+    fun hide() = ageGate.hide()
 }
