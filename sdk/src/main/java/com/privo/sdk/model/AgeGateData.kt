@@ -5,6 +5,7 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 internal data class CheckAgeStoreData(
     val displayMode: String = "redirect",
+    val isNativeIntegration: Boolean = true,
 
     val serviceIdentifier: String,
     val settings: AgeServiceSettings,
