@@ -258,13 +258,13 @@ internal class AgeGateInternal(val context: Context) {
                 "verification-pending"
             }
             AgeGateStatus.Blocked -> {
-                "sorry"
+                "access-restricted"
             }
             AgeGateStatus.ConsentRequired -> {
                 "request-consent"
             }
             AgeGateStatus.AgeVerificationRequired -> {
-                "request-consent"
+                "request-age-verification"
             }
             AgeGateStatus.IdentityVerificationRequired -> {
                 "request-verification"
