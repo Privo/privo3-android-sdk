@@ -110,6 +110,9 @@ internal class AgeGateInternal(val context: Context) {
             AgeGateAction.IdentityVerify -> {
                 return AgeGateStatus.IdentityVerificationRequired
             }
+            AgeGateAction.AgeVerify -> {
+                return AgeGateStatus.AgeVerificationRequired
+            }
             else -> {
                 return AgeGateStatus.Undefined
             }
@@ -118,7 +121,7 @@ internal class AgeGateInternal(val context: Context) {
 
     internal fun getStatusEvent(userIdentifier: String?, completionHandler:(AgeGateEvent) -> Unit) {
         getAgeGateEvent(userIdentifier) { expireEvent ->
-            if (expireEvent != null && !expireEvent?.isExpire) {
+            if (expireEvent != null && !expireEvent.isExpire) {
                 // Force return event if we found non-expired one
                 completionHandler(expireEvent.event)
                 return@getAgeGateEvent
@@ -308,9 +311,11 @@ internal class AgeGateInternal(val context: Context) {
                             url.getQueryParameter("privo_age_gate_events_id")?.let { eventId ->
                                 PrivoInternal.rest.getObjectFromTMPStorage(eventId, Array<AgeGateEventInternal>::class.java) { events ->
                                     activePrivoWebViewDialog?.hide()
-                                    events?.mapNotNull { it.toEvent() }?.forEach { event ->
-                                        completion(event)
-                                    } ?: run {
+                                    val nonCanceledEvents = events?.filter { it.status != AgeGateStatusInternal.Canceled && it.status != AgeGateStatusInternal.Closed } ?: emptyList()
+                                    val publicEvents = nonCanceledEvents.ifEmpty { events?.toList() }
+                                    if (!publicEvents.isNullOrEmpty()) {
+                                        publicEvents.forEach {completion(it.toEvent())}
+                                    } else {
                                         completion(null)
                                     }
                                 }

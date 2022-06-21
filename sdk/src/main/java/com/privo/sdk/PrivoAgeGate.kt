@@ -11,7 +11,6 @@ class PrivoAgeGate(val context: Context) {
 
     fun getAgeStatus(userIdentifier: String?, completionHandler:(AgeGateEvent?) -> Unit) {
 
-        // TODO: add pooling here
         ageGate.getStatusEvent(userIdentifier) { lastEvent ->
             ageGate.storeAgeGateEvent(lastEvent)
             completionHandler(lastEvent)
