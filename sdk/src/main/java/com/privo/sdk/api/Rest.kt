@@ -28,6 +28,8 @@ class Rest {
         .add(AgeGateStatusInternalAdapter())
         .add(AgeGateStatusAdapter())
         .add(AgeGateStatusTOAdapter())
+        .add(AgeVerificationStatusInternalAdapter())
+        .add(AgeVerificationStatusAdapter())
         .build()
     private val JSON : MediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -224,6 +226,21 @@ class Rest {
             .build()
 
         processRequest(request,ServiceInfo::class.java,completion)
+    }
+
+    internal fun getAgeVerification(verificationIdentifier: String, completion: (AgeVerificationTO?) -> Unit) {
+        val url = PrivoInternal.configuration.ageVerificationBaseUrl
+            .toHttpUrl()
+            .newBuilder()
+            .addPathSegments("age-verification")
+            .addQueryParameter("verification_identifier",verificationIdentifier)
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+
+        processRequest(request,AgeVerificationTO::class.java,completion)
     }
 
     fun getAuthSessionId(completion:(String?) -> Unit) {

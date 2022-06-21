@@ -1,3 +1,4 @@
+
 package com.privo.sdk.model
 
 import com.squareup.moshi.JsonClass

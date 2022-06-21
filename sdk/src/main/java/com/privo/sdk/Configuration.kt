@@ -7,6 +7,8 @@ internal class Configuration constructor(type: EnvironmentType){
     val verificationUrl: String
     val ageGateBaseUrl: String
     val ageGatePublicUrl: String
+    val ageVerificationBaseUrl: String
+    val ageVerificationPublicUrl: String
     val authUrl: String
     val lgsRegistrationUrl: String
     val tokenStorageKey: String
@@ -18,6 +20,8 @@ internal class Configuration constructor(type: EnvironmentType){
                 verificationUrl = "https://verification-dev.privo.com/vw"
                 ageGateBaseUrl = "https://agegate-dev.privo.com/api/v1.0"
                 ageGatePublicUrl = "https://age-dev.privo.com/gate"
+                ageVerificationBaseUrl = "https://ageverification-dev.privo.com/api/v1.0"
+                ageVerificationPublicUrl = "https://age-dev.privo.com/verification"
                 authUrl = "https://auth-dev.privo.com/api/v1.0"
                 lgsRegistrationUrl = "https://privohub-dev.privo.com/lgs"
                 tokenStorageKey = "privo-token-local"
@@ -27,6 +31,8 @@ internal class Configuration constructor(type: EnvironmentType){
                 verificationUrl = "https://verification-dev.privo.com/vw"
                 ageGateBaseUrl = "https://agegate-dev.privo.com/api/v1.0"
                 ageGatePublicUrl = "https://age-dev.privo.com/gate"
+                ageVerificationBaseUrl = "https://ageverification-dev.privo.com/api/v1.0"
+                ageVerificationPublicUrl = "https://age-dev.privo.com/verification"
                 authUrl = "https://auth-dev.privo.com/api/v1.0"
                 lgsRegistrationUrl = "https://privohub-dev.privo.com/lgs"
                 tokenStorageKey = "privo-token-dev"
@@ -36,6 +42,8 @@ internal class Configuration constructor(type: EnvironmentType){
                 verificationUrl = "https://verification-test.privo.com/vw"
                 ageGateBaseUrl = "https://agegate-test.privo.com/api/v1.0"
                 ageGatePublicUrl = "https://age-test.privo.com/gate"
+                ageVerificationBaseUrl = "https://ageverification-test.privo.com/api/v1.0"
+                ageVerificationPublicUrl = "https://age-test.privo.com/verification"
                 authUrl = "https://auth-test.privo.com/api/v1.0"
                 lgsRegistrationUrl = "https://privohub-test.privo.com/lgs"
                 tokenStorageKey = "privo-token-test"
@@ -45,6 +53,8 @@ internal class Configuration constructor(type: EnvironmentType){
                 verificationUrl = "https://verification-int.privo.com/vw"
                 ageGateBaseUrl = "https://agegate-int.privo.com/api/v1.0"
                 ageGatePublicUrl = "https://age-int.privo.com/gate"
+                ageVerificationBaseUrl = "https://ageverification-int.privo.com/api/v1.0"
+                ageVerificationPublicUrl = "https://age-int.privo.com/verification"
                 authUrl = "https://auth-int.privo.com/api/v1.0"
                 lgsRegistrationUrl = "https://privohub-int.privo.com/lgs"
                 tokenStorageKey = "privo-token-int"
@@ -54,6 +64,8 @@ internal class Configuration constructor(type: EnvironmentType){
                 verificationUrl = "https://verification-staging.privo.com/vw"
                 ageGateBaseUrl = "https://agegate-staging.privo.com/api/v1.0"
                 ageGatePublicUrl = "https://age-staging.privo.com/gate"
+                ageVerificationBaseUrl = "https://ageverification-staging.privo.com/api/v1.0"
+                ageVerificationPublicUrl = "https://age-staging.privo.com/verification"
                 authUrl = "https://auth-staging.privo.com/api/v1.0"
                 lgsRegistrationUrl = "https://privohub-staging.privo.com/lgs"
                 tokenStorageKey = "privo-token-staging"
@@ -63,6 +75,8 @@ internal class Configuration constructor(type: EnvironmentType){
                 verificationUrl = "https://verification.privo.com/vw"
                 ageGateBaseUrl = "https://agegate.privo.com/api/v1.0"
                 ageGatePublicUrl = "https://age.privo.com/gate"
+                ageVerificationBaseUrl = "https://ageverification.privo.com/api/v1.0"
+                ageVerificationPublicUrl = "https://age.privo.com/verification"
                 authUrl = "https://auth.privo.com/api/v1.0"
                 lgsRegistrationUrl = "https://privohub.privo.com/lgs"
                 tokenStorageKey = "privo-token"
