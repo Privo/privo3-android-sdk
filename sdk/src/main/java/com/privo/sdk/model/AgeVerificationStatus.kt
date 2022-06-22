@@ -19,8 +19,8 @@ internal class AgeVerificationStatusInternalAdapter {
 internal enum class AgeVerificationStatusInternal(val status: String) {
     Undefined("Undefined"),
     Pending("Pending"),
-    Blocked("Blocked"),
-    Allowed("Allowed"),
+    Declined("Declined"),
+    Confirmed("Confirmed"),
     Canceled("Canceled"),
     // Internal statuses
     Closed ("Closed"),
@@ -41,7 +41,7 @@ internal class AgeVerificationStatusAdapter {
 public enum class AgeVerificationStatus(val status: String) {
     Undefined("Undefined"),
     Pending("Pending"),
-    Blocked("Blocked"),
-    Allowed("Allowed"),
+    Declined("Declined"),
+    Confirmed("Confirmed"),
     Canceled("Canceled"),
 }
