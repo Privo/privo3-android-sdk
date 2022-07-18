@@ -19,6 +19,6 @@ enum class AgeGateAction(val action: Int) {
     Block(0),
     Consent(1),
     IdentityVerify(2),
-    AgeVerify(2),
-    Allow(3)
+    AgeVerify(3),
+    Allow(4)
 }
