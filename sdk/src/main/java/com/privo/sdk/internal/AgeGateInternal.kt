@@ -168,12 +168,14 @@ internal class AgeGateInternal(val context: Context) {
         completionHandler: (AgeGateEvent?) -> Unit
     ) {
         getFpId { fpId ->
-            val birthDateYYYMMDD = data.birthDateYYYYMMDD
-            if (fpId != null && birthDateYYYMMDD != null) {
+            // val birthDateYYYMMDD = data.birthDateYYYYMMDD
+            if (fpId != null && (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null)) {
                 val record = FpStatusRecord(
                     PrivoInternal.settings.serviceIdentifier,
                     fpId,
-                    birthDateYYYMMDD,
+                    data.birthDateYYYYMMDD,
+                    data.birthDateYYYYMM,
+                    data.birthDateYYYY,
                     data.userIdentifier,
                     data.countryCode
                 )
@@ -203,13 +205,14 @@ internal class AgeGateInternal(val context: Context) {
         lastEvent: AgeGateEvent,
         completionHandler: (AgeGateEvent?) -> Unit
     ) {
-            val birthDateYYYMMDD = data.birthDateYYYYMMDD
             val agId = lastEvent.agId
-            if (agId != null && birthDateYYYMMDD != null) {
+            if (agId != null && (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null)) {
                 val record = RecheckStatusRecord(
                     PrivoInternal.settings.serviceIdentifier,
                     agId,
-                    birthDateYYYMMDD,
+                    data.birthDateYYYYMMDD,
+                    data.birthDateYYYYMM,
+                    data.birthDateYYYY,
                     data.countryCode
                 )
                 PrivoInternal.rest.processRecheck(record) { response ->
@@ -297,6 +300,8 @@ internal class AgeGateInternal(val context: Context) {
                     userIdentifier =  data.userIdentifier,
                     countryCode = data.countryCode,
                     birthDateYYYYMMDD = data.birthDateYYYYMMDD,
+                    birthDateYYYYMM = data.birthDateYYYYMM,
+                    birthDateYYYY = data.birthDateYYYY,
                     redirectUrl = PrivoInternal.configuration.ageGatePublicUrl.plus("/index.html#/age-gate-loading"),
                     agId = agId,
                     fpId = fpId
