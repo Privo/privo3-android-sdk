@@ -17,7 +17,7 @@ data class FpStatusRecord(
 data class StatusRecord (
     val serviceIdentifier: String,
     val fpId: String,
-    val agId: String,
+    val agId: String?,
     val extUserId : String?,
 )
 

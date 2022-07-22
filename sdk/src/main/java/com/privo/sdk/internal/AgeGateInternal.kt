@@ -129,7 +129,7 @@ internal class AgeGateInternal(val context: Context) {
             val lastEvent = expireEvent?.event
             getFpId { fpId->
                 val agId = lastEvent?.agId;
-                if (agId != null && fpId != null) {
+                if (fpId != null) {
                     val record = StatusRecord(
                         PrivoInternal.settings.serviceIdentifier,
                         fpId,
