@@ -28,7 +28,7 @@ class PrivoAgeGate(val context: Context) {
                 ) {
                     completionHandler(lastEvent)
                 } else {
-                    if (data.birthDateYYYYMMDD != null) {
+                    if (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null) {
                         ageGate.runAgeGateByBirthDay(data) { event ->
                             ageGate.storeAgeGateEvent(event)
                             completionHandler(event)
@@ -46,7 +46,7 @@ class PrivoAgeGate(val context: Context) {
         ageGate.getAgeGateEvent(data.userIdentifier) { expireEvent ->
             val event = expireEvent?.event;
             if (event?.agId != null) {
-                if (data.birthDateYYYYMMDD != null) {
+                if (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null) {
                     ageGate.recheckAgeGateByBirthDay(data,event) { newEvent ->
                         ageGate.storeAgeGateEvent(newEvent)
                         completionHandler(newEvent)

@@ -12,6 +12,8 @@ internal data class CheckAgeStoreData(
     val userIdentifier: String?,
     val countryCode: String?,
     val birthDateYYYYMMDD: String?,
+    val birthDateYYYYMM: String?, // "2021-03"
+    val birthDateYYYY: String?, // "2021"
     val redirectUrl: String?,
     val agId: String?,
     val fpId: String?,
@@ -21,5 +23,7 @@ internal data class CheckAgeStoreData(
 data class CheckAgeData(
     val userIdentifier: String?, // uniq user identifier
     val birthDateYYYYMMDD: String?, // "yyyy-MM-dd" format
+    val birthDateYYYYMM: String?, // "yyyy-MM" format
+    val birthDateYYYY: String?, // "yyyy" format
     val countryCode: String?, // Alpha-2 country code, e.g US
 )

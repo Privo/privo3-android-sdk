@@ -7,6 +7,8 @@ data class FpStatusRecord(
     val serviceIdentifier: String,
     val fpId: String,
     val birthDate: String?, // "2021-03-04"
+    val birthDateYYYYMM: String?, // "2021-03"
+    val birthDateYYYY: String?, // "2021"
     val extUserId: String?,
     val countryCode: String?,
 )
@@ -15,7 +17,7 @@ data class FpStatusRecord(
 data class StatusRecord (
     val serviceIdentifier: String,
     val fpId: String,
-    val agId: String,
+    val agId: String?,
     val extUserId : String?,
 )
 
@@ -23,6 +25,8 @@ data class StatusRecord (
 data class RecheckStatusRecord(
     val serviceIdentifier: String,
     val agId: String,
-    val birthDate: String, // "2021-03-04"
+    val birthDate: String?, // "2021-03-04"
+    val birthDateYYYYMM: String?, // "2021-03"
+    val birthDateYYYY: String?, // "2021"
     val countryCode : String?,
 )
