@@ -3,12 +3,13 @@ package com.privo.sdk.model
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
-data class AgeGateResponse(
+data class AgeGateActionResponse(
     val action: AgeGateAction,
-    val ageGateIdentifier: String?
+    val agId: String
 )
 
 @JsonClass(generateAdapter = true)
-data class AgeGateRecheckResponse(
-    val action: AgeGateAction
+data class AgeGateStatusResponse(
+    val status: AgeGateStatusTO,
+    val agId: String?
 )
