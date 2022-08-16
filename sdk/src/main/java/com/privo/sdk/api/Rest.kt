@@ -128,7 +128,7 @@ class Rest {
         addStringToTMPStorage(valueString,completion)
     }
 
-    fun processStatus(data: StatusRecord, completion: (AgeGateStatusTO?) -> Unit) {
+    fun processStatus(data: StatusRecord, completion: (AgeGateStatusResponse?) -> Unit) {
         val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
             .newBuilder()
@@ -143,10 +143,10 @@ class Rest {
             .put(body)
             .build()
 
-        processRequest(request,AgeGateStatusTO::class.java,completion)
+        processRequest(request,AgeGateStatusResponse::class.java,completion)
     }
 
-    fun processBirthDate(data: FpStatusRecord, completion: (AgeGateResponse?) -> Unit) {
+    fun processBirthDate(data: FpStatusRecord, completion: (AgeGateActionResponse?) -> Unit) {
         val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
             .newBuilder()
@@ -161,10 +161,10 @@ class Rest {
             .post(body)
             .build()
 
-        processRequest(request,AgeGateResponse::class.java,completion)
+        processRequest(request,AgeGateActionResponse::class.java,completion)
     }
 
-    fun processRecheck(data: RecheckStatusRecord, completion: (AgeGateRecheckResponse?) -> Unit) {
+    fun processRecheck(data: RecheckStatusRecord, completion: (AgeGateActionResponse?) -> Unit) {
         val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
             .newBuilder()
@@ -179,7 +179,7 @@ class Rest {
             .put(body)
             .build()
 
-        processRequest(request,AgeGateRecheckResponse::class.java,completion)
+        processRequest(request,AgeGateActionResponse::class.java,completion)
     }
 
     fun getAgeServiceSettings(serviceIdentifier: String, completion: (AgeServiceSettings?) -> Unit) {
