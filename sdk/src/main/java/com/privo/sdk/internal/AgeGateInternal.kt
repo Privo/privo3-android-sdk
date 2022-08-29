@@ -68,14 +68,17 @@ internal class AgeGateInternal(val context: Context) {
             }
         };
 
-        if (event !== null && event.status != AgeGateStatus.Canceled && event.status != AgeGateStatus.Undefined) {
+        val key = "${AGE_EVENT_KEY_PREFIX}-${event?.userIdentifier ?: '0'}"
+
+        if (event !== null && event.status == AgeGateStatus.Undefined) {
+            storeValue(null,key)
+        } else if (event !== null && event.status != AgeGateStatus.Canceled) {
             serviceSettings.getSettings { settings ->
                 val interval = settings.poolAgeGateStatusInterval
                 val expireEvent = AgeGateExpireEvent(event, getEventExpiration(interval))
 
                 val eventAdapter = moshi.adapter(AgeGateExpireEvent::class.java)
                 val eventString = eventAdapter.toJson(expireEvent)
-                val key = "${AGE_EVENT_KEY_PREFIX}-${event.userIdentifier ?: '0'}"
                 storeValue(eventString, key)
             }
         }
@@ -291,12 +294,13 @@ internal class AgeGateInternal(val context: Context) {
 
             val settings = pSettings.first
             val fpId = pSettings.second
+            val serviceIdentifier = PrivoInternal.settings.serviceIdentifier
 
             if (settings != null) {
                 val agId = lastEvent?.agId
                 val status = lastEvent?.status
                 val ageGateData = CheckAgeStoreData(
-                    serviceIdentifier = PrivoInternal.settings.serviceIdentifier,
+                    serviceIdentifier = serviceIdentifier,
                     settings = settings,
                     userIdentifier =  data.userIdentifier,
                     countryCode = data.countryCode,
@@ -309,7 +313,7 @@ internal class AgeGateInternal(val context: Context) {
                 )
 
                 storeState(ageGateData) { stateId ->
-                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}#/${getStatusTargetPage(status,recheckRequired)}"
+                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}&service_identifier=${serviceIdentifier}#/${getStatusTargetPage(status,recheckRequired)}"
                     val config = WebViewConfig(
                         url = ageUrl,
                         finishCriteria = "age-gate-loading",
