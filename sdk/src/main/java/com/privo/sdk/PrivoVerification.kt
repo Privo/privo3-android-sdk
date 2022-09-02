@@ -28,7 +28,8 @@ class PrivoVerification(val context: Context) {
 
     fun showVerification(profile: UserVerificationProfile, completion: ((Array<VerificationEvent>) -> Unit)) {
         storeState(profile) { id ->
-            val verificationUrl = "${PrivoInternal.configuration.verificationUrl}/index.html?$stateKey=$id#/intro"
+            val serviceIdentifier = PrivoInternal.settings.serviceIdentifier
+            val verificationUrl = "${PrivoInternal.configuration.verificationUrl}/index.html?$stateKey=$id&service_identifier=$serviceIdentifier#/intro"
             val config = WebViewConfig(
                 verificationUrl,
                 true,

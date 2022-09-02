@@ -59,13 +59,14 @@ internal class AgeVerificationInternal(val context: Context) {
         PrivoInternal.rest.addObjectToTMPStorage(data, AgeVerificationStoreData::class.java, completion)
 
     fun runAgeVerification(profile: AgeVerificationProfile?, completion: (AgeVerificationEventInternal?) -> Unit) {
+        val serviceIdentifier = PrivoInternal.settings.serviceIdentifier
         val ageVerificationData = AgeVerificationStoreData(
-            serviceIdentifier = PrivoInternal.settings.serviceIdentifier,
+            serviceIdentifier = serviceIdentifier,
             redirectUrl =   PrivoInternal.configuration.ageVerificationPublicUrl.plus("/index.html#/age-verification-loading"),
             profile = profile
         )
         storeState(ageVerificationData) { stateId ->
-            val ageVerificationUrl = "${PrivoInternal.configuration.ageVerificationPublicUrl}/index.html?${PRIVO_STATE_ID}=${stateId}#/intro"
+            val ageVerificationUrl = "${PrivoInternal.configuration.ageVerificationPublicUrl}/index.html?${PRIVO_STATE_ID}=${stateId}&service_identifier=${serviceIdentifier}#/intro"
             val config = WebViewConfig(
                 url = ageVerificationUrl,
                 finishCriteria = "age-verification-loading",
