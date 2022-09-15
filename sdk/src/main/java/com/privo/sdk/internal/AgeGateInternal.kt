@@ -2,18 +2,25 @@ package com.privo.sdk.internal
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import com.privo.sdk.extensions.isDeviceOnline
 import com.privo.sdk.extensions.toEvent
 import com.privo.sdk.extensions.toStatus
 import com.privo.sdk.model.*
-import com.privo.sdk.model.AgeGateEventInternal
-import com.privo.sdk.model.CheckAgeStoreData
-import com.privo.sdk.model.WebViewConfig
 import com.squareup.moshi.Moshi
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 internal class AgeGateInternal(val context: Context) {
     private val FP_ID = "PrivoFpId"
     private val AGE_EVENT_KEY_PREFIX = "PrivoAgeGateEvent"
+
+    private val AGE_FORMAT_YYYYMMDD = "yyyy-MM-dd"
+    private val AGE_FORMAT_YYYYMM = "yyyy-MM"
+    private val AGE_FORMAT_YYYY = "yyyy"
+
     private val preferences: SharedPreferences = context.getSharedPreferences(PrivoPreferenceKey, Context.MODE_PRIVATE)
     private var serviceSettings = AgeSettingsInternal()
     private val moshi: Moshi = Moshi
@@ -283,6 +290,51 @@ internal class AgeGateInternal(val context: Context) {
             }
         }
     };
+
+    internal fun getDateAndFormat(data: CheckAgeData): Pair<String?,String?> {
+        return when {
+            data.birthDateYYYYMMDD != null -> Pair(data.birthDateYYYYMMDD, AGE_FORMAT_YYYYMMDD)
+            data.birthDateYYYYMM != null -> Pair(data.birthDateYYYYMM, AGE_FORMAT_YYYYMM)
+            data.birthDateYYYY != null -> Pair(data.birthDateYYYY, AGE_FORMAT_YYYY)
+            else -> Pair(null,null)
+        }
+    }
+
+    internal fun isAgeCorrect(rawDate: String, format: String): Boolean {
+        val format = SimpleDateFormat(format, Locale.US)
+        val calendar = Calendar.getInstance()
+
+
+        val date = format.parse(rawDate)
+
+        if (date != null) {
+            val currentYear = calendar.get(Calendar.YEAR);
+            calendar.time = date
+            val birthYear = calendar.get(Calendar.YEAR)
+            val age = currentYear - birthYear;
+            return age in 1..120;
+        }
+        return false
+    }
+
+    @Throws(NoInternetConnectionException::class)
+    internal fun checkNetwork() {
+        if (!context.isDeviceOnline()) {
+            throw NoInternetConnectionException();
+        }
+    }
+
+
+    @Throws(IncorrectDateOfBirthException::class, NoInternetConnectionException::class)
+    internal fun checkRequest(data: CheckAgeData) {
+        checkNetwork()
+        val (date,format) = getDateAndFormat(data)
+        if (date != null && format != null) {
+            if (!isAgeCorrect(date, format)) {
+                throw throw IncorrectDateOfBirthException()
+            }
+        }
+    }
 
     internal fun runAgeGate(
         data: CheckAgeData,

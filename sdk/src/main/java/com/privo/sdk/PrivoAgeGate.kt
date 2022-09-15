@@ -9,16 +9,18 @@ import com.privo.sdk.model.*
 class PrivoAgeGate(val context: Context) {
     private val ageGate = AgeGateInternal(context)
 
+    @Throws(NoInternetConnectionException::class)
     fun getAgeStatus(userIdentifier: String?, completionHandler:(AgeGateEvent?) -> Unit) {
-
+        ageGate.checkNetwork()
         ageGate.getStatusEvent(userIdentifier) { lastEvent ->
             ageGate.storeAgeGateEvent(lastEvent)
             completionHandler(lastEvent)
         }
     }
 
+    @Throws(IncorrectDateOfBirthException::class, NoInternetConnectionException::class)
     fun run(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
-
+        ageGate.checkRequest(data)
         ageGate.getAgeGateEvent(data.userIdentifier) { expireEvent ->
             val lastEvent = expireEvent?.event
                 if (lastEvent != null &&
@@ -42,7 +44,9 @@ class PrivoAgeGate(val context: Context) {
                 }
         }
     }
+    @Throws(IncorrectDateOfBirthException::class, NoInternetConnectionException::class)
     fun recheck(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
+        ageGate.checkRequest(data)
         ageGate.getAgeGateEvent(data.userIdentifier) { expireEvent ->
             val event = expireEvent?.event;
             if (event?.agId != null) {
