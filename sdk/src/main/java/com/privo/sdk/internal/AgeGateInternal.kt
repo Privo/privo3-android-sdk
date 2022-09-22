@@ -2,8 +2,6 @@ package com.privo.sdk.internal
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import com.privo.sdk.extensions.isDeviceOnline
 import com.privo.sdk.extensions.toEvent
 import com.privo.sdk.extensions.toStatus
@@ -148,15 +146,16 @@ internal class AgeGateInternal(val context: Context) {
                     )
                     PrivoInternal.rest.processStatus(record) { response ->
                         if (response != null) {
-                            val status = response.status.toStatus();
-                            val event = AgeGateEvent(status, userIdentifier, response.agId)
+                            val status = response.status.toStatus()
+                            val event = AgeGateEvent(status, userIdentifier, response.agId, response.ageRange)
                             completionHandler(event)
                         } else {
                             completionHandler(
                                 AgeGateEvent(
                                     AgeGateStatus.Undefined,
                                     userIdentifier,
-                                    agId
+                                    agId,
+                                    null
                                 )
                             )
                         }
@@ -166,7 +165,8 @@ internal class AgeGateInternal(val context: Context) {
                         AgeGateEvent(
                             lastEvent?.status ?: AgeGateStatus.Undefined,
                             userIdentifier,
-                            lastEvent?.agId
+                            lastEvent?.agId,
+                            lastEvent?.ageRange
                         )
                     )
                 }
@@ -193,7 +193,7 @@ internal class AgeGateInternal(val context: Context) {
                 PrivoInternal.rest.processBirthDate(record) { response ->
                     if (response != null) {
                         val status = toStatus(response.action)
-                        val event = AgeGateEvent(status,data.userIdentifier,response.agId)
+                        val event = AgeGateEvent(status,data.userIdentifier,response.agId, response.ageRange)
 
                         if (
                             response.action == AgeGateAction.Consent ||
@@ -229,7 +229,7 @@ internal class AgeGateInternal(val context: Context) {
                 PrivoInternal.rest.processRecheck(record) { response ->
                     if (response != null) {
                         val status = toStatus(response.action)
-                        val event = AgeGateEvent(status,data.userIdentifier,response.agId)
+                        val event = AgeGateEvent(status,data.userIdentifier,response.agId, response.ageRange)
                         if (
                             response.action == AgeGateAction.Consent ||
                             response.action == AgeGateAction.IdentityVerify ||
@@ -245,7 +245,7 @@ internal class AgeGateInternal(val context: Context) {
                 }
             }
     }
-    private fun prepareSettings(completionHandler: (Pair<AgeServiceSettings?,String??>) -> Unit) {
+    private fun prepareSettings(completionHandler: (Pair<AgeServiceSettings?,String?>) -> Unit) {
         var settings: AgeServiceSettings? = null
         var fpId: String? = null
 
