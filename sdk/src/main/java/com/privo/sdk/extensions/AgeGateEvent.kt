@@ -11,6 +11,6 @@ internal fun AgeGateEventInternal.toEvent(): AgeGateEvent? {
         null
     } else {
         val status = AgeGateStatus.valueOf(this.status.status)
-        AgeGateEvent(status, this.userIdentifier, this.agId)
+        AgeGateEvent(status, this.userIdentifier, this.agId, this.ageRange)
     }
 }
