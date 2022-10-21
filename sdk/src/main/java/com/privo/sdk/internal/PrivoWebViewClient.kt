@@ -4,6 +4,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.app.Dialog
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.print.PrintAttributes
@@ -31,9 +32,17 @@ internal class PrivoWebViewClient(private val config: WebViewConfig, private val
 
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
         val url = request.url.toString()
+
+        if (url.contains("mailto:")) {
+            view?.context?.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            )
+            return true
+        }
+
         val printCriteria = config.printCriteria
         if (printCriteria != null && url.contains(printCriteria) ) {
-            view?.let{
+            view?.let {
                 printContent(it, url)
             }
             return true
