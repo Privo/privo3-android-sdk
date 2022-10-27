@@ -46,5 +46,10 @@ class PrivoAgeGate(val context: Context) {
             }
         }
     }
+    @Throws(NoInternetConnectionException::class)
+    fun showIdentifierModal(userIdentifier: String?) {
+        ageGate.helpers.checkNetwork()
+        ageGate.showAgeGateIdentifier(userIdentifier)
+    }
     fun hide() = ageGate.hide()
 }

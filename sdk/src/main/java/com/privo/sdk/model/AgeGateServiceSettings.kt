@@ -10,5 +10,7 @@ data class AgeServiceSettings(
     val isShowStatusUi: Boolean,
     val poolAgeGateStatusInterval: Int,
     val verificationApiKey: String?,
-    val p2SiteId: Int?
+    val p2SiteId: Int?,
+    val logoUrl: String?,
+    val customerSupportEmail: String?
 )

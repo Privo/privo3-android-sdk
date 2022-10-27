@@ -245,5 +245,42 @@ internal class AgeGateInternal(val context: Context) {
             }
         }
     }
+
+    internal fun showAgeGateIdentifier(userIdentifier: String?) {
+        storage.getStoredAgeGateId(userIdentifier) { agId ->
+            storage.getFpId { fpId ->
+                storage.serviceSettings.getSettings { settings ->
+
+                    val serviceIdentifier = PrivoInternal.settings.serviceIdentifier
+                    val ageGateData = CheckAgeStoreData(
+                        serviceIdentifier = serviceIdentifier,
+                        settings = settings,
+                        userIdentifier =  userIdentifier,
+                        agId = agId,
+                        fpId = fpId,
+                        redirectUrl = null,
+                        countryCode = null,
+                        birthDateYYYYMMDD = null,
+                        birthDateYYYYMM = null,
+                        birthDateYYYY = null
+                    )
+
+                    storeState(ageGateData) { stateId ->
+                        val ageUrl =
+                            "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}&service_identifier=${serviceIdentifier}#/age-gate-identifier"
+                        val config = WebViewConfig(
+                            url = ageUrl,
+                            finishCriteria = "identifier-closed",
+                            onFinish = {
+                                activePrivoWebViewDialog?.hide()
+                            }
+                        )
+                        activePrivoWebViewDialog = PrivoWebViewDialog(context, config)
+                        activePrivoWebViewDialog?.show()
+                    }
+                }
+            }
+        }
+    }
     internal fun hide() = activePrivoWebViewDialog?.hide()
 }
