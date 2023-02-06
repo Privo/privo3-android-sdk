@@ -7,18 +7,14 @@ import com.squareup.moshi.JsonClass
 internal data class AgeGateEventInternal(
     val status : AgeGateStatusInternal,
     val userIdentifier : String?,
+    val nickname : String?,
     val agId : String?,
     val ageRange: AgeRange?
 )
 
+@Deprecated(message = "We don't store previous events anymore, so we don't need expiration")
 @JsonClass(generateAdapter = true)
 internal data class AgeGateExpireEvent(
     val event: AgeGateEvent,
     val expires: Long
-)
-
-@JsonClass(generateAdapter = true)
-internal data class AgeGateIsExpireEvent(
-    val event: AgeGateEvent,
-    val isExpire: Boolean
 )

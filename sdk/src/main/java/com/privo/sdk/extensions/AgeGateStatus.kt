@@ -37,6 +37,9 @@ internal fun AgeGateStatusTO.toStatus(): AgeGateStatus {
         AgeGateStatusTO.AgeBlocked -> {
             return AgeGateStatus.AgeBlocked
         }
+        AgeGateStatusTO.MultiUserBlocked -> {
+            return AgeGateStatus.MultiUserBlocked
+        }
         else -> {
             return AgeGateStatus.Undefined
         }
