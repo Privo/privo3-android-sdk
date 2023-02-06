@@ -30,3 +30,10 @@ data class RecheckStatusRecord(
     val birthDateYYYY: String?, // "2021"
     val countryCode : String?,
 )
+
+@JsonClass(generateAdapter = true)
+data class LinkUserStatusRecord (
+    val serviceIdentifier: String,
+    val agId: String,
+    val extUserId: String
+)

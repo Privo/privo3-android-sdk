@@ -2,11 +2,12 @@ package com.privo.sdk.internal.age.gate
 
 import android.content.Context
 import com.privo.sdk.extensions.isDeviceOnline
+import com.privo.sdk.internal.AgeSettingsInternal
 import com.privo.sdk.model.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-internal class AgeGateHelpers (val context: Context) {
+internal class AgeGateHelpers (val context: Context, val serviceSettings: AgeSettingsInternal) {
 
     private val AGE_FORMAT_YYYYMMDD = "yyyy-MM-dd"
     private val AGE_FORMAT_YYYYMM = "yyyy-MM"
@@ -91,14 +92,50 @@ internal class AgeGateHelpers (val context: Context) {
     @Throws(NoInternetConnectionException::class)
     internal fun checkNetwork() {
         if (!context.isDeviceOnline()) {
-            throw NoInternetConnectionException();
+            throw NoInternetConnectionException()
         }
     }
 
+    @Throws(
+        NotAllowedEmptyStringUserIdentifierException::class,
+        NotAllowedEmptyStringNicknameException::class,
+        NotAllowedEmptyStringAgIdException::class,
+        NotAllowedMultiUserUsageException::class
+    )
+    internal fun checkUserData(userIdentifier: String?, nickname: String?, agId: String? = null) {
+        userIdentifier?.let { ui ->
+            if (ui.isEmpty()) {
+                throw NotAllowedEmptyStringUserIdentifierException()
+            }
+        }
+        nickname?.let { n ->
+            if (n.isEmpty()) {
+                throw NotAllowedEmptyStringNicknameException()
+            }
+            serviceSettings.getSettings { settings ->
+                if(!settings.isMultiUserOn) {
+                    throw NotAllowedMultiUserUsageException()
+                }
+            }
+        }
+        agId?.let { ai ->
+            if (ai.isEmpty()) {
+                throw NotAllowedEmptyStringAgIdException()
+            }
+        }
+    }
 
-    @Throws(IncorrectDateOfBirthException::class, NoInternetConnectionException::class)
+    @Throws(
+        IncorrectDateOfBirthException::class,
+        NoInternetConnectionException::class,
+        NotAllowedEmptyStringUserIdentifierException::class,
+        NotAllowedEmptyStringNicknameException::class,
+        NotAllowedEmptyStringAgIdException::class,
+        NotAllowedMultiUserUsageException::class
+    )
     internal fun checkRequest(data: CheckAgeData) {
         checkNetwork()
+        checkUserData(data.userIdentifier, data.nickname)
         val (date,format) = getDateAndFormat(data)
         if (date != null && format != null) {
             if (!isAgeCorrect(date, format)) {

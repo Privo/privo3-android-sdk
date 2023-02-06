@@ -12,5 +12,6 @@ data class AgeServiceSettings(
     val verificationApiKey: String?,
     val p2SiteId: Int?,
     val logoUrl: String?,
-    val customerSupportEmail: String?
+    val customerSupportEmail: String?,
+    val isMultiUserOn: Boolean
 )

@@ -7,21 +7,20 @@ import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.internal.PrivoPreferenceKey
 import com.privo.sdk.model.*
 import com.privo.sdk.model.AgeGateExpireEvent
-import com.privo.sdk.model.AgeGateIsExpireEvent
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 
 
 internal class AgeGateStorage(val context: Context) {
     private val FP_ID = "PrivoFpId"
+    private val AGE_GATE_STORED_ENTITY_KEY = "AgeGateStoredEntity"
     private val AGE_GATE_ID_KEY_PREFIX = "AgeGateID"
     private val AGE_EVENT_KEY_PREFIX = "PrivoAgeGateEvent"
 
     internal val preferences: SharedPreferences = context.getSharedPreferences(PrivoPreferenceKey, Context.MODE_PRIVATE)
     internal var serviceSettings = AgeSettingsInternal()
 
-    private var lastEvents = mutableMapOf<String, AgeGateExpireEvent>()
-
-    private val moshi: Moshi = Moshi
+    internal val moshi: Moshi = Moshi
         .Builder()
         .add(VerificationMethodTypeAdapter())
         .add(AgeGateStatusInternalAdapter())
@@ -55,61 +54,74 @@ internal class AgeGateStorage(val context: Context) {
         }
     }
 
-    private fun getAgIdKey(userIdentifier: String?) = "${AGE_GATE_ID_KEY_PREFIX}-${userIdentifier ?: ""}"
+    internal fun getAgeGateStoredEntities(completion: (Set<AgeGateStoredEntity>) -> Unit) {
+        preferences.getString(AGE_GATE_STORED_ENTITY_KEY,null)?.let { jsonString ->
+            val adapter = moshi.adapter<Set<AgeGateStoredEntity>>(
+                Types.newParameterizedType(Set::class.java, AgeGateStoredEntity::class.java)
+            )
+            val entities = adapter.fromJson(jsonString)
+            completion(entities ?: emptySet())
+        } ?: run {
+            completion(emptySet())
+        }
+    }
+    internal fun storeAgId(userIdentifier: String?, nickname: String?, agId: String) {
+        val newEntity = AgeGateStoredEntity(userIdentifier = userIdentifier, nickname = nickname, agId = agId)
+        getAgeGateStoredEntities { entities ->
+            val newEntities = entities + newEntity
 
-
-    internal fun storeAgeGateEvent(event: AgeGateEvent?) {
-
-        fun getEventExpiration(interval: Int): Long {
-            return if (event?.status == AgeGateStatus.Pending) {
-                // Pending Events are always expired and should be re-fetched
-                System.currentTimeMillis()
-            } else {
-                (System.currentTimeMillis() + (interval * 1000))
+            val adapter = moshi.adapter<Set<AgeGateStoredEntity>>(
+                Types.newParameterizedType(Set::class.java, AgeGateStoredEntity::class.java)
+            )
+            adapter.toJson(newEntities)?.let {
+                storeValue(it, AGE_GATE_STORED_ENTITY_KEY);
             }
         }
-
-        if (event !== null && event.status != AgeGateStatus.Canceled) {
-            serviceSettings.getSettings { settings ->
-                val interval = settings.poolAgeGateStatusInterval
-                val expireEvent = AgeGateExpireEvent(event, getEventExpiration(interval))
-                val key = event.userIdentifier ?: ""
-                lastEvents[key] = expireEvent
-            }
-        }
-        event?.agId?.let {
-            val key = getAgIdKey(event.userIdentifier)
-            storeValue(it,key);
+    }
+    internal fun storeInfoFromEvent(event: AgeGateEvent?) {
+        event?.agId?.let { agId ->
+            storeAgId(userIdentifier = event.userIdentifier, nickname = event.nickname, agId = agId)
         }
     }
 
-    internal fun getStoredAgeGateId(userIdentifier: String?, completion: (String?) -> Unit) {
-        val key = getAgIdKey(userIdentifier)
-        preferences.getString(key,null)?.let {
-            completion(it)
-        } ?: run {
-            // follback. TODO: remove it later (after all users will use a new storage)
-            val oldKey = "${AGE_EVENT_KEY_PREFIX}-${userIdentifier ?: '0'}"
-            preferences.getString(oldKey,null)?.let { eventString ->
-                val adapter = moshi.adapter(AgeGateExpireEvent::class.java)
-                val expireEvent = adapter.fromJson(eventString)
-                val agId = expireEvent?.event?.agId
-                val adIdKey = getAgIdKey(userIdentifier)
-                storeValue(agId, adIdKey)
-                completion(agId)
+    internal fun getStoredAgeGateId(userIdentifier: String?, nickname: String?, completion: (String?) -> Unit) {
+        getAgeGateStoredEntities { entities ->
+            val ageGateData = entities.firstOrNull { ent ->
+                if (userIdentifier != null) {
+                    return@firstOrNull ent.userIdentifier == userIdentifier
+                } else {
+                    return@firstOrNull ent.nickname == nickname
+                }
+            }
+            ageGateData?.let {
+                completion(it.agId)
             } ?: run {
-                completion(null)
+                // fallback 1. TODO: remove it later (after all users will use a new storage)
+                val oldKey = "${AGE_GATE_ID_KEY_PREFIX}-${userIdentifier ?: ""}"
+                preferences.getString(oldKey,null)?.let { agId ->
+                    storeAgId(userIdentifier = userIdentifier, nickname = nickname, agId = agId)
+                    completion(agId)
+                } ?: run {
+                    // fallback 2. TODO: remove it later (after all users will use a new storage)
+                    val oldKey2 = "${AGE_EVENT_KEY_PREFIX}-${userIdentifier ?: '0'}"
+                    preferences.getString(oldKey2,null)?.let { eventString ->
+                        val adapter = moshi.adapter(AgeGateExpireEvent::class.java)
+                        val expireEvent = adapter.fromJson(eventString)
+                        expireEvent?.event?.agId?.let { agId ->
+                            storeAgId(
+                                userIdentifier = userIdentifier,
+                                nickname = nickname,
+                                agId = agId
+                            )
+                            completion(agId)
+                        } ?: run {
+                            completion(null)
+                        }
+                    } ?: run {
+                        completion(null)
+                    }
+                }
             }
-        }
-
-    }
-
-    internal fun getStoredAgeGateEvent(userIdentifier: String?): AgeGateIsExpireEvent? {
-        val key = userIdentifier ?: ""
-        lastEvents[key]?.let {
-            return AgeGateIsExpireEvent(it.event, it.expires < System.currentTimeMillis())
-        } ?: run {
-            return null
         }
     }
 }

@@ -6,18 +6,20 @@ import com.privo.sdk.extensions.toStatus
 import com.privo.sdk.internal.*
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.model.*
+import com.squareup.moshi.Types
 import java.util.*
 
 
 internal class AgeGateInternal(val context: Context) {
 
     internal val storage = AgeGateStorage(context)
-    internal val helpers = AgeGateHelpers(context)
+    internal val helpers = AgeGateHelpers(context, storage.serviceSettings)
     private var activePrivoWebViewDialog: PrivoWebViewDialog? = null
 
 
     internal fun processStatus(
         userIdentifier: String?,
+        nickname: String?,
         agId: String?,
         fpId: String,
         completionHandler:(AgeGateEvent) -> Unit) {
@@ -31,15 +33,16 @@ internal class AgeGateInternal(val context: Context) {
         PrivoInternal.rest.processStatus(record) { response ->
             if (response != null) {
                 val status = response.status.toStatus()
-                val event = AgeGateEvent(status, userIdentifier, response.agId, response.ageRange)
+                val event = AgeGateEvent(status = status, userIdentifier = userIdentifier, nickname = nickname, agId = response.agId, ageRange = response.ageRange)
                 completionHandler(event)
             } else {
                 completionHandler(
                     AgeGateEvent(
-                        AgeGateStatus.Undefined,
-                        userIdentifier,
-                        agId,
-                        null
+                        status = AgeGateStatus.Undefined,
+                        userIdentifier = userIdentifier,
+                        nickname = nickname,
+                        agId = agId,
+                        ageRange = null
                     )
                 )
             }
@@ -47,67 +50,90 @@ internal class AgeGateInternal(val context: Context) {
     }
 
 
-    internal fun getStatusEvent(userIdentifier: String?, completionHandler:(AgeGateEvent) -> Unit) {
-        val expireEvent = storage.getStoredAgeGateEvent(userIdentifier)
-        if (expireEvent?.isExpire == false) {
-            expireEvent.event.let {
-                // Force return event if we found non-expired one
-                completionHandler(it)
-                return
-            }
-        }
-        storage.getStoredAgeGateId(userIdentifier) { agId ->
+    internal fun getStatusEvent(userIdentifier: String?, nickname: String?, completionHandler:(AgeGateEvent) -> Unit) {
+
+        storage.getStoredAgeGateId(userIdentifier = userIdentifier, nickname = nickname) { agId ->
             storage.getFpId { fpId ->
-                processStatus(
-                    userIdentifier,
-                    agId,
-                    fpId
-                ) { event ->
-                    storage.storeAgeGateEvent(event)
-                    completionHandler(event)
+                if (agId == null && nickname != null) {
+                    // for case of a new nickname
+                    processStatus(
+                        userIdentifier = null,
+                        nickname = nickname,
+                        agId = null,
+                        fpId = fpId,
+                        completionHandler = completionHandler
+                    )
+                } else {
+                    processStatus(
+                        userIdentifier = userIdentifier,
+                        nickname = nickname,
+                        agId = agId,
+                        fpId = fpId,
+                        completionHandler = completionHandler
+                    )
                 }
             }
         }
     }
 
-    private fun getCurrentAgeState(
+
+    internal fun linkUser(userIdentifier: String, agId: String,nickname: String?,completionHandler:(AgeGateEvent) -> Unit) {
+
+        storage.getAgeGateStoredEntities { entities ->
+
+            val isKnownAgId = entities.any {it.agId == agId}
+            if (!isKnownAgId) {
+                val warning = AgeGateLinkWarning(description =  "Age Gate Id wasn't found in the store during Age Gate 'link user' call", agIdEntities = entities)
+
+                val adapter = storage.moshi.adapter(AgeGateLinkWarning::class.java)
+                adapter.toJson(warning)?.let {
+                    val event = AnalyticEvent(serviceIdentifier = PrivoInternal.settings.serviceIdentifier, data = it)
+                    PrivoInternal.rest.sendAnalyticEvent(event)
+                }
+            }
+            val record = LinkUserStatusRecord(
+                serviceIdentifier = PrivoInternal.settings.serviceIdentifier,
+                agId = agId,
+                extUserId = userIdentifier
+            )
+            PrivoInternal.rest.processLinkUser(record) { response ->
+                        response?.let { res ->
+                            val event = AgeGateEvent(
+                                status = res.status.toStatus(),
+                                userIdentifier = userIdentifier,
+                                nickname = nickname,
+                                agId = res.agId ?: agId,
+                                ageRange = response.ageRange
+                            )
+                            completionHandler(event)
+                        } ?: run {
+                            completionHandler(AgeGateEvent(
+                                status = AgeGateStatus.Undefined,
+                                userIdentifier = userIdentifier,
+                                nickname = nickname,
+                                agId = agId,
+                                ageRange = null
+                            ))
+                        }
+                }
+            }
+    }
+
+    private fun getAgeGateState(
         userIdentifier: String?,
-        prevEvent: AgeGateEvent?,
+        nickname: String?,
         completion: (AgeState?) -> Unit)
     {
-        storage.getStoredAgeGateId(userIdentifier) { agId ->
+        storage.getStoredAgeGateId(userIdentifier = userIdentifier, nickname = nickname) { agId ->
             storage.getFpId { fpId ->
-
-                var settings: AgeServiceSettings? = null
-                var event: AgeGateEvent? = null
-                val group = DispatchGroup(2) {
-                    settings?.let { settings ->
-                        completion(AgeState(
-                            fpId,
-                            agId,
-                            settings,
-                            event
-                        ))
-                    } ?: run {
-                        completion(null)
-                    }
-                }
-                storage.serviceSettings.getSettings {
-                    settings = it
-                    group.leave()
-                }
-                if (prevEvent != null) {
-                    event = prevEvent
-                    group.leave()
-                } else {
-                    processStatus(
-                        userIdentifier,
-                        agId,
-                        fpId
-                    ) {
-                        event = it
-                        group.leave()
-                    }
+                storage.serviceSettings.getSettings { settings ->
+                    completion(
+                        AgeState(
+                            fpId = fpId,
+                            agId = agId,
+                            settings = settings,
+                        )
+                    )
                 }
             }
         }
@@ -132,7 +158,7 @@ internal class AgeGateInternal(val context: Context) {
                 PrivoInternal.rest.processBirthDate(record) { response ->
                     if (response != null) {
                         val status = helpers.toStatus(response.action)
-                        val event = AgeGateEvent(status,data.userIdentifier,response.agId, response.ageRange)
+                        val event = AgeGateEvent(status = status, userIdentifier = data.userIdentifier, agId = response.agId, nickname = data.nickname, ageRange = response.ageRange)
 
                         if (
                             response.action == AgeGateAction.Consent ||
@@ -154,7 +180,7 @@ internal class AgeGateInternal(val context: Context) {
         data: CheckAgeData,
         completionHandler: (AgeGateEvent?) -> Unit
     ) {
-        storage.getStoredAgeGateId(data.userIdentifier) { agId ->
+        storage.getStoredAgeGateId(data.userIdentifier, nickname = data.nickname) { agId ->
             if (agId != null && (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null)) {
                 val record = RecheckStatusRecord(
                     PrivoInternal.settings.serviceIdentifier,
@@ -167,7 +193,7 @@ internal class AgeGateInternal(val context: Context) {
                 PrivoInternal.rest.processRecheck(record) { response ->
                     if (response != null) {
                         val status = helpers.toStatus(response.action)
-                        val event = AgeGateEvent(status,data.userIdentifier,response.agId, response.ageRange)
+                        val event = AgeGateEvent(status = status, userIdentifier = data.userIdentifier, agId = response.agId, nickname = data.nickname, ageRange = response.ageRange)
                         if (
                             response.action == AgeGateAction.Consent ||
                             response.action == AgeGateAction.IdentityVerify ||
@@ -196,13 +222,12 @@ internal class AgeGateInternal(val context: Context) {
         recheckRequired: Boolean,
         completion: (AgeGateEvent?) -> Unit
     ) {
-        getCurrentAgeState(data.userIdentifier, prevEvent) { state ->
+        getAgeGateState(data.userIdentifier, data.nickname) { state ->
             val serviceIdentifier = PrivoInternal.settings.serviceIdentifier
 
             if (state?.settings != null) {
                 val fpId = state.fpId
                 val agId = state.agId
-                val status = state.event?.status
                 val ageGateData = CheckAgeStoreData(
                     serviceIdentifier = serviceIdentifier,
                     settings = state.settings,
@@ -217,7 +242,7 @@ internal class AgeGateInternal(val context: Context) {
                 )
 
                 storeState(ageGateData) { stateId ->
-                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}&service_identifier=${serviceIdentifier}#/${helpers.getStatusTargetPage(status,recheckRequired)}"
+                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}&service_identifier=${serviceIdentifier}#/${helpers.getStatusTargetPage(prevEvent?.status,recheckRequired)}"
                     val config = WebViewConfig(
                         url = ageUrl,
                         finishCriteria = "age-gate-loading",
@@ -242,12 +267,14 @@ internal class AgeGateInternal(val context: Context) {
                     activePrivoWebViewDialog?.show()
                 }
 
+            } else {
+                completion(null)
             }
         }
     }
 
-    internal fun showAgeGateIdentifier(userIdentifier: String?) {
-        storage.getStoredAgeGateId(userIdentifier) { agId ->
+    internal fun showAgeGateIdentifier(userIdentifier: String?, nickname: String?) {
+        storage.getStoredAgeGateId(userIdentifier, nickname) { agId ->
             storage.getFpId { fpId ->
                 storage.serviceSettings.getSettings { settings ->
 

@@ -146,6 +146,24 @@ class Rest {
         processRequest(request,AgeGateStatusResponse::class.java,completion)
     }
 
+    fun processLinkUser(data: LinkUserStatusRecord, completion: (AgeGateStatusResponse?) -> Unit) {
+        val url = PrivoInternal.configuration.ageGateBaseUrl
+            .toHttpUrl()
+            .newBuilder()
+            .addPathSegments("age-gate/link-user")
+            .build()
+        val adapter = moshi.adapter(LinkUserStatusRecord::class.java)
+        val body = adapter
+            .toJson(data)
+            .toRequestBody(JSON)
+        val request = Request.Builder()
+            .url(url)
+            .post(body)
+            .build()
+
+        processRequest(request,AgeGateStatusResponse::class.java,completion)
+    }
+
     fun processBirthDate(data: FpStatusRecord, completion: (AgeGateActionResponse?) -> Unit) {
         val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
