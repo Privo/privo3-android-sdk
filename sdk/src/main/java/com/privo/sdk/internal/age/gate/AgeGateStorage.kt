@@ -37,6 +37,10 @@ internal class AgeGateStorage(val context: Context) {
         }
     }
 
+    private fun getStoredEntitiesKey (): String {
+        return "${AGE_GATE_STORED_ENTITY_KEY}-${PrivoInternal.settings.envType}"
+    }
+
     internal fun getStoredFpId () = preferences.getString(FP_ID,null)
     internal fun storeFpId (id: String?) = storeValue(id, FP_ID)
 
@@ -55,7 +59,7 @@ internal class AgeGateStorage(val context: Context) {
     }
 
     internal fun getAgeGateStoredEntities(completion: (Set<AgeGateStoredEntity>) -> Unit) {
-        preferences.getString(AGE_GATE_STORED_ENTITY_KEY,null)?.let { jsonString ->
+        preferences.getString(getStoredEntitiesKey(),null)?.let { jsonString ->
             val adapter = moshi.adapter<Set<AgeGateStoredEntity>>(
                 Types.newParameterizedType(Set::class.java, AgeGateStoredEntity::class.java)
             )
@@ -74,7 +78,7 @@ internal class AgeGateStorage(val context: Context) {
                 Types.newParameterizedType(Set::class.java, AgeGateStoredEntity::class.java)
             )
             adapter.toJson(newEntities)?.let {
-                storeValue(it, AGE_GATE_STORED_ENTITY_KEY);
+                storeValue(it, getStoredEntitiesKey());
             }
         }
     }
