@@ -30,6 +30,7 @@ internal enum class AgeGateStatusInternal(val status: String) {
     AgeVerified("AgeVerified"),
     AgeBlocked("AgeBlocked"),
     Canceled("Canceled"),
+    MultiUserBlocked("MultiUserBlocked"),
 
     // Internal statuses
     Closed ("Closed"),
@@ -59,6 +60,7 @@ enum class AgeGateStatusTO(val status: Int) {
     AgeVerificationRequired(9),
     AgeVerified(10),
     AgeBlocked(11),
+    MultiUserBlocked(12),
 }
 
 class AgeGateStatusAdapter {
@@ -87,4 +89,5 @@ enum class AgeGateStatus(val status: String) {
     AgeVerified("AgeVerified"),
     AgeBlocked("AgeBlocked"),
     Canceled("Canceled"),
+    MultiUserBlocked("MultiUserBlocked")
 }

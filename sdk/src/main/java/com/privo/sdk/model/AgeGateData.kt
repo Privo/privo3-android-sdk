@@ -21,9 +21,10 @@ internal data class CheckAgeStoreData(
 
 @JsonClass(generateAdapter = true)
 data class CheckAgeData(
-    val userIdentifier: String?, // uniq user identifier
-    val birthDateYYYYMMDD: String?, // "yyyy-MM-dd" format
-    val birthDateYYYYMM: String?, // "yyyy-MM" format
-    val birthDateYYYY: String?, // "yyyy" format
-    val countryCode: String?, // Alpha-2 country code, e.g US
+    val userIdentifier: String? = null, // uniq user identifier. Can not be an empty string ("").
+    val birthDateYYYYMMDD: String?  = null, // "yyyy-MM-dd" format
+    val birthDateYYYYMM: String? = null, // "yyyy-MM" format
+    val birthDateYYYY: String? = null, // "yyyy" format
+    val countryCode: String? = null, // Alpha-2 country code, e.g US
+    val nickname: String? = null // Nickname of user for multi-user integration. Can not be an empty string ("").
 )
