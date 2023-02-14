@@ -9,5 +9,6 @@ data class AgeGateEvent(
     val userIdentifier : String?,
     val nickname : String?,
     val agId : String?,
-    val ageRange: AgeRange?
+    val ageRange: AgeRange?,
+    val countryCode: String?
 )

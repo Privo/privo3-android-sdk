@@ -20,6 +20,7 @@ class PrivoAgeGate(val context: Context) {
         ageGate.helpers.checkNetwork()
         ageGate.helpers.checkUserData(userIdentifier = userIdentifier, nickname = nickname)
         ageGate.getStatusEvent(userIdentifier = userIdentifier, nickname = nickname) { lastEvent ->
+            ageGate.storage.storeInfoFromEvent(lastEvent)
             completionHandler(lastEvent)
         }
     }
@@ -34,15 +35,23 @@ class PrivoAgeGate(val context: Context) {
     )
     fun run(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
         ageGate.helpers.checkRequest(data)
-        if (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null) {
-            ageGate.runAgeGateByBirthDay(data) { event ->
-                ageGate.storage.storeInfoFromEvent(event)
-                completionHandler(event)
-            }
-        } else {
-            ageGate.runAgeGate(data, null, false) { event ->
-                ageGate.storage.storeInfoFromEvent(event)
-                completionHandler(event)
+
+        ageGate.getStatusEvent(userIdentifier = data.userIdentifier, nickname = data.nickname) { statusEvent ->
+            ageGate.storage.storeInfoFromEvent(statusEvent)
+            if (statusEvent.status != AgeGateStatus.Undefined) {
+                completionHandler(statusEvent)
+            } else {
+                if (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null) {
+                    ageGate.runAgeGateByBirthDay(data) { event ->
+                        ageGate.storage.storeInfoFromEvent(event)
+                        completionHandler(event)
+                    }
+                } else {
+                    ageGate.runAgeGate(data, null, false) { event ->
+                        ageGate.storage.storeInfoFromEvent(event)
+                        completionHandler(event)
+                    }
+                }
             }
         }
     }

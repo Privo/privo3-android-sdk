@@ -6,12 +6,16 @@ import com.squareup.moshi.JsonClass
 data class AgeGateActionResponse(
     val action: AgeGateAction,
     val agId: String,
-    val ageRange: AgeRange?
+    val ageRange: AgeRange?,
+    val extUserId: String?,
+    val countryCode: String?
 )
 
 @JsonClass(generateAdapter = true)
 data class AgeGateStatusResponse(
     val status: AgeGateStatusTO,
     val agId: String?,
-    val ageRange: AgeRange?
+    val ageRange: AgeRange?,
+    val extUserId: String?,
+    val countryCode: String?
 )
