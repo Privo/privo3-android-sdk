@@ -277,7 +277,21 @@ internal class AgeGateInternal(val context: Context) {
                                     val nonCanceledEvents = events?.filter { it.status != AgeGateStatusInternal.Canceled && it.status != AgeGateStatusInternal.Closed } ?: emptyList()
                                     val publicEvents = nonCanceledEvents.ifEmpty { events?.toList() }
                                     if (!publicEvents.isNullOrEmpty()) {
-                                        publicEvents.forEach {completion(it.toEvent())}
+                                        publicEvents.forEach {
+                                            val event = it.toEvent()
+                                            if (event?.status == AgeGateStatus.IdentityVerified || event?.status == AgeGateStatus.AgeVerified) {
+                                                // sunc status to get Correct Age Range
+                                                processStatus(
+                                                    userIdentifier = event.userIdentifier,
+                                                    nickname = data.nickname,
+                                                    agId = event.agId,
+                                                    fpId = state.fpId,
+                                                    completionHandler = completion
+                                                )
+                                            } else {
+                                                completion(event)
+                                            }
+                                        }
                                     } else {
                                         completion(null)
                                     }
