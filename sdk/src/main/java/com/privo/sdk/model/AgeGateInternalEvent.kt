@@ -9,7 +9,8 @@ internal data class AgeGateEventInternal(
     val userIdentifier : String?,
     val nickname : String?,
     val agId : String?,
-    val ageRange: AgeRange?
+    val ageRange: AgeRange?,
+    val countryCode: String?
 )
 
 @Deprecated(message = "We don't store previous events anymore, so we don't need expiration")

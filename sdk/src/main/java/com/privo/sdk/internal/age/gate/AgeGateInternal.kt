@@ -33,7 +33,14 @@ internal class AgeGateInternal(val context: Context) {
         PrivoInternal.rest.processStatus(record) { response ->
             if (response != null) {
                 val status = response.status.toStatus()
-                val event = AgeGateEvent(status = status, userIdentifier = userIdentifier, nickname = nickname, agId = response.agId, ageRange = response.ageRange)
+                val event = AgeGateEvent(
+                    status = status,
+                    userIdentifier = response.extUserId,
+                    nickname = nickname,
+                    agId = response.agId,
+                    ageRange = response.ageRange,
+                    countryCode = response.countryCode
+                )
                 completionHandler(event)
             } else {
                 completionHandler(
@@ -42,7 +49,8 @@ internal class AgeGateInternal(val context: Context) {
                         userIdentifier = userIdentifier,
                         nickname = nickname,
                         agId = agId,
-                        ageRange = null
+                        ageRange = null,
+                        countryCode = null,
                     )
                 )
             }
@@ -100,10 +108,11 @@ internal class AgeGateInternal(val context: Context) {
                         response?.let { res ->
                             val event = AgeGateEvent(
                                 status = res.status.toStatus(),
-                                userIdentifier = userIdentifier,
+                                userIdentifier = res.extUserId,
                                 nickname = nickname,
                                 agId = res.agId ?: agId,
-                                ageRange = response.ageRange
+                                ageRange = res.ageRange,
+                                countryCode = res.countryCode
                             )
                             completionHandler(event)
                         } ?: run {
@@ -112,7 +121,8 @@ internal class AgeGateInternal(val context: Context) {
                                 userIdentifier = userIdentifier,
                                 nickname = nickname,
                                 agId = agId,
-                                ageRange = null
+                                ageRange = null,
+                                countryCode = null,
                             ))
                         }
                 }
@@ -158,7 +168,14 @@ internal class AgeGateInternal(val context: Context) {
                 PrivoInternal.rest.processBirthDate(record) { response ->
                     if (response != null) {
                         val status = helpers.toStatus(response.action)
-                        val event = AgeGateEvent(status = status, userIdentifier = data.userIdentifier, agId = response.agId, nickname = data.nickname, ageRange = response.ageRange)
+                        val event = AgeGateEvent(
+                            status = status,
+                            userIdentifier = response.extUserId,
+                            agId = response.agId,
+                            nickname = data.nickname,
+                            ageRange = response.ageRange,
+                            countryCode = response.countryCode,
+                        )
 
                         if (
                             response.action == AgeGateAction.Consent ||
@@ -193,7 +210,14 @@ internal class AgeGateInternal(val context: Context) {
                 PrivoInternal.rest.processRecheck(record) { response ->
                     if (response != null) {
                         val status = helpers.toStatus(response.action)
-                        val event = AgeGateEvent(status = status, userIdentifier = data.userIdentifier, agId = response.agId, nickname = data.nickname, ageRange = response.ageRange)
+                        val event = AgeGateEvent(
+                            status = status,
+                            userIdentifier = response.extUserId,
+                            agId = response.agId,
+                            nickname = data.nickname,
+                            ageRange = response.ageRange,
+                            countryCode = response.countryCode,
+                        )
                         if (
                             response.action == AgeGateAction.Consent ||
                             response.action == AgeGateAction.IdentityVerify ||
@@ -253,7 +277,21 @@ internal class AgeGateInternal(val context: Context) {
                                     val nonCanceledEvents = events?.filter { it.status != AgeGateStatusInternal.Canceled && it.status != AgeGateStatusInternal.Closed } ?: emptyList()
                                     val publicEvents = nonCanceledEvents.ifEmpty { events?.toList() }
                                     if (!publicEvents.isNullOrEmpty()) {
-                                        publicEvents.forEach {completion(it.toEvent())}
+                                        publicEvents.forEach {
+                                            val event = it.toEvent()
+                                            if (event?.status == AgeGateStatus.IdentityVerified || event?.status == AgeGateStatus.AgeVerified) {
+                                                // sunc status to get Correct Age Range
+                                                processStatus(
+                                                    userIdentifier = event.userIdentifier,
+                                                    nickname = data.nickname,
+                                                    agId = event.agId,
+                                                    fpId = state.fpId,
+                                                    completionHandler = completion
+                                                )
+                                            } else {
+                                                completion(event)
+                                            }
+                                        }
                                     } else {
                                         completion(null)
                                     }
