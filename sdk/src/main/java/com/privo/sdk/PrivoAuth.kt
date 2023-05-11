@@ -2,9 +2,11 @@ package com.privo.sdk
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
 import android.util.Log
 import com.auth0.android.jwt.JWT
 import com.privo.sdk.components.LoadingDialog
+import com.privo.sdk.internal.PrivoChromeTab
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.internal.PrivoPreferenceKey
 import com.privo.sdk.internal.PrivoWebViewDialog
@@ -19,11 +21,14 @@ class PrivoAuth(val context: Context) {
     private val tokenKey = PrivoInternal.configuration.tokenStorageKey
     private var activePrivoWebViewDialog: PrivoWebViewDialog? = null
     private val preferences: SharedPreferences = context.getSharedPreferences(PrivoPreferenceKey, Context.MODE_PRIVATE)
-    private  val loadingDialog = LoadingDialog(context)
+    private val loadingDialog = LoadingDialog(context)
+    val chromeTab = PrivoChromeTab(context)
 
     fun showLogin(completion: (String?) -> Unit) {
         loadingDialog.show()
-        val url = "${PrivoInternal.configuration.authUrl}/privo/authorize?client_id=mobile&redirect_uri="
+        val serviceIdentifier = PrivoInternal.settings.serviceIdentifier;
+        val authUrl = PrivoInternal.configuration.authUrl
+        val url = "${authUrl}/privo/authorize?client_id=mobile&service_identifier=${serviceIdentifier}&redirect_uri="
         val config = WebViewConfig(
             url,
             onPrivoEvent = { event ->
@@ -42,6 +47,30 @@ class PrivoAuth(val context: Context) {
         )
         activePrivoWebViewDialog = PrivoWebViewDialog(context, config)
         activePrivoWebViewDialog?.show()
+
+    }
+    fun showBrowserLogin(completion: (String?) -> Unit) {
+        // loadingDialog.show()
+        val serviceIdentifier = PrivoInternal.settings.serviceIdentifier;
+        val authUrl = PrivoInternal.configuration.authUrl
+        val redirectUri = Uri.encode("https://account-dev.privo.com/mobile-auth")
+        val url = "${authUrl}/privo/authorize?client_id=mobile&service_identifier=${serviceIdentifier}&redirect_uri=${redirectUri}"
+        val config = WebViewConfig(
+            url,
+            onPrivoEvent = { event ->
+                event?.get(accessIdKey)?.let { accessId ->
+                    PrivoInternal.rest.getStringFromTMPStorage(accessId) { token ->
+                        if (token != null) {
+                            preferences.edit().putString(tokenKey,token).apply()
+                        }
+                        completion(token)
+                    }
+                }},
+            onLoad = {
+                // loadingDialog.hide()
+            }
+        )
+        chromeTab.show(config)
 
     }
     fun showRegister(completion: (dialog: PrivoWebViewDialog) -> Unit) {
