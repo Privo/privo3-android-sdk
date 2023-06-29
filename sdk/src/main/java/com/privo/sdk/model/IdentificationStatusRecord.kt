@@ -9,6 +9,7 @@ data class FpStatusRecord(
     val birthDate: String?, // "2021-03-04"
     val birthDateYYYYMM: String?, // "2021-03"
     val birthDateYYYY: String?, // "2021"
+    val age: Int?, // age, for example 14
     val extUserId: String?,
     val countryCode: String?,
 )
@@ -28,6 +29,7 @@ data class RecheckStatusRecord(
     val birthDate: String?, // "2021-03-04"
     val birthDateYYYYMM: String?, // "2021-03"
     val birthDateYYYY: String?, // "2021"
+    val age: Int?, // age, for example 14
     val countryCode : String?,
 )
 

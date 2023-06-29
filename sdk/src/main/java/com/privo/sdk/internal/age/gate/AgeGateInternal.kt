@@ -155,13 +155,14 @@ internal class AgeGateInternal(val context: Context) {
         completionHandler: (AgeGateEvent?) -> Unit
     ) {
         storage.getFpId { fpId ->
-            if ((data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null)) {
+            if ((data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null || data.age != null)) {
                 val record = FpStatusRecord(
                     PrivoInternal.settings.serviceIdentifier,
                     fpId,
                     data.birthDateYYYYMMDD,
                     data.birthDateYYYYMM,
                     data.birthDateYYYY,
+                    data.age,
                     data.userIdentifier,
                     data.countryCode
                 )
@@ -198,13 +199,14 @@ internal class AgeGateInternal(val context: Context) {
         completionHandler: (AgeGateEvent?) -> Unit
     ) {
         storage.getStoredAgeGateId(data.userIdentifier, nickname = data.nickname) { agId ->
-            if (agId != null && (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null)) {
+            if (agId != null && (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null || data.age != null)) {
                 val record = RecheckStatusRecord(
                     PrivoInternal.settings.serviceIdentifier,
                     agId,
                     data.birthDateYYYYMMDD,
                     data.birthDateYYYYMM,
                     data.birthDateYYYY,
+                    data.age,
                     data.countryCode
                 )
                 PrivoInternal.rest.processRecheck(record) { response ->
@@ -280,7 +282,7 @@ internal class AgeGateInternal(val context: Context) {
                                         publicEvents.forEach {
                                             val event = it.toEvent()
                                             if (event?.status == AgeGateStatus.IdentityVerified || event?.status == AgeGateStatus.AgeVerified) {
-                                                // sunc status to get Correct Age Range
+                                                // sync status to get Correct Age Range
                                                 processStatus(
                                                     userIdentifier = event.userIdentifier,
                                                     nickname = data.nickname,

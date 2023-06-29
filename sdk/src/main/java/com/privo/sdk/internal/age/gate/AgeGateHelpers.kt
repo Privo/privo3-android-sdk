@@ -72,6 +72,9 @@ internal class AgeGateHelpers (val context: Context, val serviceSettings: AgeSet
         }
     }
 
+    internal fun isAgeIntCorrect(age: Int): Boolean {
+        return age in 1..120;
+    }
     internal fun isAgeCorrect(rawDate: String, format: String): Boolean {
         val formatter = SimpleDateFormat(format, Locale.US)
         val calendar = Calendar.getInstance()
@@ -80,11 +83,11 @@ internal class AgeGateHelpers (val context: Context, val serviceSettings: AgeSet
         val date = formatter.parse(rawDate)
 
         if (date != null) {
-            val currentYear = calendar.get(Calendar.YEAR);
+            val currentYear = calendar.get(Calendar.YEAR)
             calendar.time = date
             val birthYear = calendar.get(Calendar.YEAR)
-            val age = currentYear - birthYear;
-            return age in 1..120;
+            val age = currentYear - birthYear
+            return isAgeIntCorrect(age)
         }
         return false
     }
@@ -127,6 +130,7 @@ internal class AgeGateHelpers (val context: Context, val serviceSettings: AgeSet
 
     @Throws(
         IncorrectDateOfBirthException::class,
+        IncorrectAgeException::class,
         NoInternetConnectionException::class,
         NotAllowedEmptyStringUserIdentifierException::class,
         NotAllowedEmptyStringNicknameException::class,
@@ -140,6 +144,11 @@ internal class AgeGateHelpers (val context: Context, val serviceSettings: AgeSet
         if (date != null && format != null) {
             if (!isAgeCorrect(date, format)) {
                 throw throw IncorrectDateOfBirthException()
+            }
+        }
+        if (data.age != null) {
+            if (!isAgeIntCorrect(data.age)) {
+                throw throw IncorrectAgeException()
             }
         }
     }
