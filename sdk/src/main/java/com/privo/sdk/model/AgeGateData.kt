@@ -11,7 +11,7 @@ internal data class CheckAgeStoreData(
     val settings: AgeServiceSettings,
     val userIdentifier: String?,
     val countryCode: String?,
-    val birthDateYYYYMMDD: String?,
+    val birthDateYYYYMMDD: String?, // "2021-03-01"
     val birthDateYYYYMM: String?, // "2021-03"
     val birthDateYYYY: String?, // "2021"
     val redirectUrl: String?,
@@ -25,6 +25,7 @@ data class CheckAgeData(
     val birthDateYYYYMMDD: String?  = null, // "yyyy-MM-dd" format
     val birthDateYYYYMM: String? = null, // "yyyy-MM" format
     val birthDateYYYY: String? = null, // "yyyy" format
+    val age: Int? = null,  // age, for example 14
     val countryCode: String? = null, // Alpha-2 country code, e.g US
     val nickname: String? = null // Nickname of user for multi-user integration. Can not be an empty string ("").
 )

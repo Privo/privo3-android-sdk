@@ -41,7 +41,7 @@ class PrivoAgeGate(val context: Context) {
             if (statusEvent.status != AgeGateStatus.Undefined) {
                 completionHandler(statusEvent)
             } else {
-                if (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null) {
+                if (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null || data.age != null ) {
                     ageGate.runAgeGateByBirthDay(data) { event ->
                         ageGate.storage.storeInfoFromEvent(event)
                         completionHandler(event)
@@ -64,7 +64,7 @@ class PrivoAgeGate(val context: Context) {
         NotAllowedMultiUserUsageException::class
     )
     fun recheck(data: CheckAgeData,completionHandler: (AgeGateEvent?) -> Unit) {
-        if (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null) {
+        if (data.birthDateYYYYMMDD != null || data.birthDateYYYYMM != null || data.birthDateYYYY != null || data.age != null) {
             ageGate.recheckAgeGateByBirthDay(data) { newEvent ->
                 ageGate.storage.storeInfoFromEvent(newEvent)
                 completionHandler(newEvent)
