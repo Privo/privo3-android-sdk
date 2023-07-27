@@ -31,6 +31,9 @@ internal class AgeGateHelpers (val context: Context, val serviceSettings: AgeSet
             AgeGateAction.AgeVerify -> {
                 return AgeGateStatus.AgeVerificationRequired
             }
+            AgeGateAction.AgeEstimationBlock -> {
+                return AgeGateStatus.AgeEstimationBlocked
+            }
             else -> {
                 return AgeGateStatus.Undefined
             }
@@ -38,30 +41,42 @@ internal class AgeGateHelpers (val context: Context, val serviceSettings: AgeSet
     }
 
 
-    internal fun getStatusTargetPage(status: AgeGateStatus?, recheckRequired: Boolean): String {
-        if(recheckRequired) {
-            return "recheck"
-        }
-        return when (status) {
-            AgeGateStatus.Pending -> {
-                "verification-pending"
+    internal fun getStatusTargetPage(status: AgeGateStatus?, requiredAction: AgeGateInternalAction?): String {
+        return when (requiredAction) {
+            AgeGateInternalAction.RecheckRequired -> {
+                "recheck"
             }
-            AgeGateStatus.Blocked -> {
-                "access-restricted"
+            AgeGateInternalAction.AgeEstimationRequired -> {
+                "request-age-estimation"
             }
-            AgeGateStatus.ConsentRequired -> {
-                "request-consent"
-            }
-            AgeGateStatus.AgeVerificationRequired -> {
-                "request-age-verification"
-            }
-            AgeGateStatus.IdentityVerificationRequired -> {
-                "request-verification"
+            AgeGateInternalAction.AgeEstimationRecheckRequired -> {
+                "request-age-estimation-recheck"
             } else -> {
-                "dob"
+                return when (status) {
+                    AgeGateStatus.Pending -> {
+                        "verification-pending"
+                    }
+                    AgeGateStatus.Blocked -> {
+                        "access-restricted"
+                    }
+                    AgeGateStatus.ConsentRequired -> {
+                        "request-consent"
+                    }
+                    AgeGateStatus.AgeVerificationRequired -> {
+                        "request-age-verification"
+                    }
+                    AgeGateStatus.IdentityVerificationRequired -> {
+                        "request-verification"
+                    }
+                    AgeGateStatus.AgeEstimationBlocked -> {
+                        "access-restricted"
+                    } else -> {
+                        "dob"
+                    }
+                }
             }
         }
-    };
+    }
 
     internal fun getDateAndFormat(data: CheckAgeData): Pair<String?,String?> {
         return when {

@@ -5,7 +5,6 @@ import com.privo.sdk.internal.age.gate.AgeGateInternal
 import com.privo.sdk.model.*
 
 
-
 class PrivoAgeGate(val context: Context) {
     private val ageGate = AgeGateInternal(context)
 
@@ -47,7 +46,7 @@ class PrivoAgeGate(val context: Context) {
                         completionHandler(event)
                     }
                 } else {
-                    ageGate.runAgeGate(data, null, false) { event ->
+                    ageGate.runAgeGate(data, null, null) { event ->
                         ageGate.storage.storeInfoFromEvent(event)
                         completionHandler(event)
                     }
@@ -70,7 +69,7 @@ class PrivoAgeGate(val context: Context) {
                 completionHandler(newEvent)
             }
         } else {
-            ageGate.runAgeGate(data,null,true) { newEvent ->
+            ageGate.runAgeGate(data,null, AgeGateInternalAction.RecheckRequired) { newEvent ->
                 ageGate.storage.storeInfoFromEvent(newEvent)
                 completionHandler(newEvent)
             }
@@ -97,4 +96,5 @@ class PrivoAgeGate(val context: Context) {
         ageGate.showAgeGateIdentifier(userIdentifier, nickname)
     }
     fun hide() = ageGate.hide()
+    fun checkRuntimePermissions(activity: android.app.Activity) = ageGate.permissions.checkCameraPermission(activity)
 }
