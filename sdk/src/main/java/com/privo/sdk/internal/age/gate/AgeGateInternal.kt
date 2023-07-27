@@ -1,12 +1,12 @@
 package com.privo.sdk.internal.age.gate
 
 import android.content.Context
+
 import com.privo.sdk.extensions.toEvent
 import com.privo.sdk.extensions.toStatus
 import com.privo.sdk.internal.*
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.model.*
-import com.squareup.moshi.Types
 import java.util.*
 
 
@@ -14,8 +14,8 @@ internal class AgeGateInternal(val context: Context) {
 
     internal val storage = AgeGateStorage(context)
     internal val helpers = AgeGateHelpers(context, storage.serviceSettings)
+    internal val permissions = PermissionsInternal(context)
     private var activePrivoWebViewDialog: PrivoWebViewDialog? = null
-
 
     internal fun processStatus(
         userIdentifier: String?,
@@ -166,7 +166,7 @@ internal class AgeGateInternal(val context: Context) {
                     data.userIdentifier,
                     data.countryCode
                 )
-                PrivoInternal.rest.processBirthDate(record) { response ->
+                PrivoInternal.rest.processBirthDate(record,{ response ->
                     if (response != null) {
                         val status = helpers.toStatus(response.action)
                         val event = AgeGateEvent(
@@ -183,14 +183,16 @@ internal class AgeGateInternal(val context: Context) {
                             response.action == AgeGateAction.IdentityVerify ||
                             response.action == AgeGateAction.AgeVerify
                         ) {
-                            runAgeGate(data,event,false,completionHandler)
+                            runAgeGate(data,event,null, completionHandler)
                         } else {
                             completionHandler(event)
                         }
                     } else {
                         completionHandler(null)
                     }
-                }
+                }, {
+                    runAgeGate(data,null,AgeGateInternalAction.AgeEstimationRequired,completionHandler)
+                })
             }
         }
     }
@@ -209,7 +211,7 @@ internal class AgeGateInternal(val context: Context) {
                     data.age,
                     data.countryCode
                 )
-                PrivoInternal.rest.processRecheck(record) { response ->
+                PrivoInternal.rest.processRecheck(record, { response ->
                     if (response != null) {
                         val status = helpers.toStatus(response.action)
                         val event = AgeGateEvent(
@@ -225,14 +227,16 @@ internal class AgeGateInternal(val context: Context) {
                             response.action == AgeGateAction.IdentityVerify ||
                             response.action == AgeGateAction.AgeVerify
                         ) {
-                            runAgeGate(data,event,false,completionHandler)
+                            runAgeGate(data,event,null,completionHandler)
                         } else {
                             completionHandler(event)
                         }
                     } else {
                         completionHandler(null)
                     }
-                }
+                }, {
+                    runAgeGate(data,null,AgeGateInternalAction.AgeEstimationRecheckRequired,completionHandler)
+                })
             }
         }
     }
@@ -245,7 +249,7 @@ internal class AgeGateInternal(val context: Context) {
     internal fun runAgeGate(
         data: CheckAgeData,
         prevEvent: AgeGateEvent?,
-        recheckRequired: Boolean,
+        requiredAction: AgeGateInternalAction?,
         completion: (AgeGateEvent?) -> Unit
     ) {
         getAgeGateState(data.userIdentifier, data.nickname) { state ->
@@ -262,13 +266,15 @@ internal class AgeGateInternal(val context: Context) {
                     birthDateYYYYMMDD = data.birthDateYYYYMMDD,
                     birthDateYYYYMM = data.birthDateYYYYMM,
                     birthDateYYYY = data.birthDateYYYY,
+                    age = data.age,
                     redirectUrl = PrivoInternal.configuration.ageGatePublicUrl.plus("/index.html#/age-gate-loading"),
                     agId = agId,
                     fpId = fpId
                 )
 
                 storeState(ageGateData) { stateId ->
-                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}&service_identifier=${serviceIdentifier}#/${helpers.getStatusTargetPage(prevEvent?.status,recheckRequired)}"
+                    val ageUrl = "${PrivoInternal.configuration.ageGatePublicUrl}/index.html?privo_age_gate_state_id=${stateId}&service_identifier=${serviceIdentifier}#/${helpers.getStatusTargetPage(prevEvent?.status,requiredAction)}"
+                    // val ageUrl = "https://webrtc.github.io/samples/src/content/getusermedia/gum/"
                     val config = WebViewConfig(
                         url = ageUrl,
                         finishCriteria = "age-gate-loading",
@@ -329,7 +335,8 @@ internal class AgeGateInternal(val context: Context) {
                         countryCode = null,
                         birthDateYYYYMMDD = null,
                         birthDateYYYYMM = null,
-                        birthDateYYYY = null
+                        birthDateYYYY = null,
+                        age = null
                     )
 
                     storeState(ageGateData) { stateId ->

@@ -14,6 +14,7 @@ internal data class CheckAgeStoreData(
     val birthDateYYYYMMDD: String?, // "2021-03-01"
     val birthDateYYYYMM: String?, // "2021-03"
     val birthDateYYYY: String?, // "2021"
+    val age: Int?, // "age"
     val redirectUrl: String?,
     val agId: String?,
     val fpId: String?,

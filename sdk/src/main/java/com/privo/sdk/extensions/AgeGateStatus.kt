@@ -40,6 +40,9 @@ internal fun AgeGateStatusTO.toStatus(): AgeGateStatus {
         AgeGateStatusTO.MultiUserBlocked -> {
             return AgeGateStatus.MultiUserBlocked
         }
+        AgeGateStatusTO.AgeEstimationBlocked -> {
+            return AgeGateStatus.AgeEstimationBlocked
+        }
         else -> {
             return AgeGateStatus.Undefined
         }

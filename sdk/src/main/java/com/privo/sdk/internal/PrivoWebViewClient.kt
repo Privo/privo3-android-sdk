@@ -1,21 +1,22 @@
 package com.privo.sdk.internal
 
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.print.PrintAttributes
 import android.print.PrintManager
 import android.view.View
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
+import android.webkit.*
 import com.privo.sdk.components.LoadingDialog
 import com.privo.sdk.model.WebViewConfig
 
+
 internal class PrivoWebViewClient(private val config: WebViewConfig, private val parentDialog: Dialog): WebViewClient() {
+    var isFinished = false;
     val loading = LoadingDialog(parentDialog.context)
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
@@ -53,7 +54,8 @@ internal class PrivoWebViewClient(private val config: WebViewConfig, private val
     override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
         super.doUpdateVisitedHistory(view, url, isReload)
         val finishCriteria = config.finishCriteria
-        if (finishCriteria != null && url != null && url.contains(finishCriteria) ) {
+        if (finishCriteria != null && url != null && url.contains(finishCriteria) && isFinished == false ) {
+            isFinished = true // fix preventing multiple onFinish
             config.onFinish?.invoke(Uri.parse(url))
         }
     }
@@ -78,5 +80,13 @@ internal class PrivoWebViewClient(private val config: WebViewConfig, private val
         }
         webView.visibility = View.INVISIBLE
         parentView.addView(webView)
+    }
+}
+
+internal class PrivoWebChromeClient(private val parentDialog: Dialog): WebChromeClient() {
+    override fun onPermissionRequest(request: PermissionRequest) {
+        Handler(Looper.getMainLooper()).post {
+            request.grant(request.resources)
+        }
     }
 }
