@@ -2,6 +2,7 @@ package com.privo.sdk
 
 import android.content.Context
 import com.privo.sdk.extensions.createVerificationEvent
+import com.privo.sdk.internal.PermissionsInternal
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.internal.PrivoWebViewDialog
 import com.privo.sdk.model.*
@@ -12,6 +13,7 @@ class PrivoVerification(val context: Context) {
     private val eventsKey = "privo_events_id"
     private val stateKey = "privo_state_id"
     private var activePrivoWebViewDialog: PrivoWebViewDialog? = null
+    private val permissions = PermissionsInternal(context)
 
     private fun storeState(profile: UserVerificationProfile?, completion: (String?) -> Unit ) {
         val redirectUrl = PrivoInternal.configuration.verificationUrl + "/#/verification-loading";
@@ -53,4 +55,6 @@ class PrivoVerification(val context: Context) {
         }
 
     }
+    fun checkRuntimePermissions(activity: android.app.Activity) = permissions.checkCameraPermission(activity)
+
 }

@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.View
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.model.*
 import com.privo.sdk.model.adapters.MillisecondsTimeStampAdapter
@@ -43,7 +44,7 @@ class Rest {
         runOnMainThread { completion() }
     }
 
-    private fun <T>getMoshiCallback(type: Class<T>, completion:(T?) -> Unit): Callback {
+    private fun <T>getMoshiCallback(type: Class<T>, completion:(T?) -> Unit, customErrorCompletion:((code: Int) -> Unit)?): Callback {
         return object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 handleError(e) { completion(null) }
@@ -61,16 +62,28 @@ class Rest {
                             handleError(e) { completion(null) }
                         }
                     }
-                }
-                runOnMainThread {
-                    completion(null)
+                } else {
+                    val json = response.body?.string()
+                    if (!json.isNullOrEmpty() && customErrorCompletion != null) {
+                        try {
+                            moshi.adapter(CustomRestError::class.java).fromJson(json)?.let { error ->
+                                customErrorCompletion(error.code);
+                            } ?: run {
+                                runOnMainThread { completion(null) }
+                            }
+                        } catch (e: Exception) {
+                            handleError(e) { completion(null) }
+                        }
+                    } else {
+                        runOnMainThread { completion(null) }
+                    }
                 }
             }
         }
     }
 
-    private fun <T> processRequest (request: Request, type: Class<T>, completion:(T?) -> Unit) {
-        val callback = getMoshiCallback(type, completion)
+    private fun <T> processRequest (request: Request, type: Class<T>, completion:(T?) -> Unit, customErrorCompletion:((code: Int) -> Unit)?) {
+        val callback = getMoshiCallback(type, completion, customErrorCompletion)
         client.newCall(request).enqueue(callback)
     }
     fun getStringFromTMPStorage(key: String, completion: (String?) -> Unit) {
@@ -81,9 +94,9 @@ class Rest {
             .addPathSegment(key)
             .build()
         val request = Request.Builder().url(tmpStorageURL).build()
-        processRequest(request,TmpStringObject::class.java) {
+        processRequest(request,TmpStringObject::class.java,{
             completion(it?.data)
-        }
+        }, null)
     }
     fun <T>getObjectFromTMPStorage(key: String, clazz:  Class<T>, completion: (T?) -> Unit) {
         val adapter = moshi.adapter(clazz)
@@ -118,9 +131,9 @@ class Rest {
             .post(postBody)
             .build()
 
-        processRequest(request,TmpStorageResponse::class.java) {
+        processRequest(request,TmpStorageResponse::class.java, {
             completion(it?.id)
-        }
+        }, null)
     }
     fun <T>addObjectToTMPStorage(value: T, clazz:  Class<T>, completion: ((String?) -> Unit), ttl: Int? = null, ) {
         val valueAdapter = moshi.adapter(clazz)
@@ -143,7 +156,7 @@ class Rest {
             .put(body)
             .build()
 
-        processRequest(request,AgeGateStatusResponse::class.java,completion)
+        processRequest(request,AgeGateStatusResponse::class.java,completion, null)
     }
 
     fun processLinkUser(data: LinkUserStatusRecord, completion: (AgeGateStatusResponse?) -> Unit) {
@@ -161,10 +174,10 @@ class Rest {
             .post(body)
             .build()
 
-        processRequest(request,AgeGateStatusResponse::class.java,completion)
+        processRequest(request,AgeGateStatusResponse::class.java,completion, null)
     }
 
-    fun processBirthDate(data: FpStatusRecord, completion: (AgeGateActionResponse?) -> Unit) {
+    fun processBirthDate(data: FpStatusRecord, completion: (AgeGateActionResponse?) -> Unit, ageEstimationRequiredCompletion: () -> Unit) {
         val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
             .newBuilder()
@@ -179,10 +192,16 @@ class Rest {
             .post(body)
             .build()
 
-        processRequest(request,AgeGateActionResponse::class.java,completion)
+        processRequest(request,AgeGateActionResponse::class.java,completion) { code ->
+            if (code == 2016) {
+                ageEstimationRequiredCompletion()
+            } else {
+                handleError(Exception("Custom REST Error with code: $code")) { completion(null) }
+            }
+        }
     }
 
-    fun processRecheck(data: RecheckStatusRecord, completion: (AgeGateActionResponse?) -> Unit) {
+    fun processRecheck(data: RecheckStatusRecord, completion: (AgeGateActionResponse?) -> Unit, ageEstimationRequiredCompletion: () -> Unit) {
         val url = PrivoInternal.configuration.ageGateBaseUrl
             .toHttpUrl()
             .newBuilder()
@@ -197,7 +216,13 @@ class Rest {
             .put(body)
             .build()
 
-        processRequest(request,AgeGateActionResponse::class.java,completion)
+        processRequest(request,AgeGateActionResponse::class.java,completion) { code ->
+            if (code == 2016) {
+                ageEstimationRequiredCompletion()
+            } else {
+                handleError(Exception("Custom REST Error with code: $code")) { completion(null) }
+            }
+        }
     }
 
     fun getAgeServiceSettings(serviceIdentifier: String, completion: (AgeServiceSettings?) -> Unit) {
@@ -212,7 +237,7 @@ class Rest {
             .get()
             .build()
 
-        processRequest(request,AgeServiceSettings::class.java,completion)
+        processRequest(request,AgeServiceSettings::class.java,completion, null)
     }
     fun generateFingerprint(fingerprint: DeviceFingerprint, completion: (DeviceFingerprintResponse?) -> Unit) {
         val url = PrivoInternal.configuration.authUrl
@@ -229,7 +254,7 @@ class Rest {
             .post(body)
             .build()
 
-        processRequest(request,DeviceFingerprintResponse::class.java,completion)
+        processRequest(request,DeviceFingerprintResponse::class.java,completion, null)
     }
     fun getServiceInfo(serviceIdentifier: String, completion: (ServiceInfo?) -> Unit) {
         val url = PrivoInternal.configuration.authUrl
@@ -243,7 +268,7 @@ class Rest {
             .get()
             .build()
 
-        processRequest(request,ServiceInfo::class.java,completion)
+        processRequest(request,ServiceInfo::class.java,completion, null)
     }
 
     internal fun getAgeVerification(verificationIdentifier: String, completion: (AgeVerificationTO?) -> Unit) {
@@ -258,7 +283,7 @@ class Rest {
             .get()
             .build()
 
-        processRequest(request,AgeVerificationTO::class.java,completion)
+        processRequest(request,AgeVerificationTO::class.java,completion, null)
     }
 
     fun getAuthSessionId(completion:(String?) -> Unit) {
@@ -299,7 +324,7 @@ class Rest {
             .post(body)
             .build()
 
-        processRequest(request,LoginResponse::class.java,completion)
+        processRequest(request,LoginResponse::class.java,completion, null)
     }
 
     fun sendAnalyticEvent(event: AnalyticEvent) {
@@ -316,7 +341,7 @@ class Rest {
                 .url(url)
                 .post(body)
                 .build()
-            processRequest(request,Unit::class.java){}
+            processRequest(request,Unit::class.java,{},null)
         } catch(e: java.lang.Exception) {
             Log.e("PRIVO Android SDK", "exception",e)
         }
