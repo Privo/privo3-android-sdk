@@ -1,5 +1,6 @@
 package com.privo.sdk.internal.age.gate
 
+import android.app.Activity
 import android.content.Context
 
 import com.privo.sdk.extensions.toEvent
@@ -191,6 +192,7 @@ internal class AgeGateInternal(val context: Context) {
                         completionHandler(null)
                     }
                 }, {
+                    permissions.checkCameraPermission(context as Activity)
                     runAgeGate(data,null,AgeGateInternalAction.AgeEstimationRequired,completionHandler)
                 })
             }
@@ -235,6 +237,7 @@ internal class AgeGateInternal(val context: Context) {
                         completionHandler(null)
                     }
                 }, {
+                    permissions.checkCameraPermission(context as Activity)
                     runAgeGate(data,null,AgeGateInternalAction.AgeEstimationRecheckRequired,completionHandler)
                 })
             }
