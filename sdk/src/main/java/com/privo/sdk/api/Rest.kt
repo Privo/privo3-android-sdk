@@ -87,7 +87,7 @@ class Rest {
         client.newCall(request).enqueue(callback)
     }
     fun getStringFromTMPStorage(key: String, completion: (String?) -> Unit) {
-        val tmpStorageURL = PrivoInternal.configuration.helpersUrl
+        val tmpStorageURL = PrivoInternal.configuration.commonUrl
             .toHttpUrl()
             .newBuilder()
             .addPathSegment("storage")
@@ -116,7 +116,7 @@ class Rest {
     fun addStringToTMPStorage(value: String, completion: ((String?) -> Unit), ttl: Int? = null, ) {
         val adapter = moshi.adapter(TmpStringObject::class.java)
 
-        val tmpStorageURL = PrivoInternal.configuration.helpersUrl
+        val tmpStorageURL = PrivoInternal.configuration.commonUrl
             .toHttpUrl()
             .newBuilder()
             .addPathSegment("storage")
@@ -243,7 +243,7 @@ class Rest {
         val url = PrivoInternal.configuration.authUrl
             .toHttpUrl()
             .newBuilder()
-            .addPathSegment("fp")
+            .addPathSegments("api/v1.0/fp")
             .build()
         val adapter = moshi.adapter(DeviceFingerprint::class.java)
         val body = adapter
@@ -260,7 +260,7 @@ class Rest {
         val url = PrivoInternal.configuration.authUrl
             .toHttpUrl()
             .newBuilder()
-            .addPathSegments("info/svc")
+            .addPathSegments("api/v1.0/info/svc")
             .addQueryParameter("service_identifier",serviceIdentifier)
             .build()
         val request = Request.Builder()
@@ -287,7 +287,7 @@ class Rest {
     }
 
     fun getAuthSessionId(completion:(String?) -> Unit) {
-        val url = "${PrivoInternal.configuration.authUrl}/privo/authorize?client_id=mobile&redirect_uri="
+        val url = "${PrivoInternal.configuration.authUrl}/authorize?client_id=mobile&redirect_uri="
             .toHttpUrl()
             .newBuilder()
             .build()
@@ -314,7 +314,7 @@ class Rest {
     }
 
     fun renewToken(oldToken: String, sessionId: String, completion: (LoginResponse?) -> Unit) {
-        val url = "${PrivoInternal.configuration.authUrl}/privo/login/token?session_id=${sessionId}"
+        val url = "${PrivoInternal.configuration.authUrl}/api/v1.0/privo/login/token?session_id=${sessionId}"
             .toHttpUrl()
             .newBuilder()
             .build()
@@ -329,7 +329,7 @@ class Rest {
 
     fun sendAnalyticEvent(event: AnalyticEvent) {
         try {
-            val url = "${PrivoInternal.configuration.helpersUrl}/metrics"
+            val url = "${PrivoInternal.configuration.commonUrl}/metrics"
                 .toHttpUrl()
                 .newBuilder()
                 .build()
