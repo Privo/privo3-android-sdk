@@ -28,7 +28,7 @@ class PrivoAuth(val context: Context) {
         loadingDialog.show()
         val serviceIdentifier = PrivoInternal.settings.serviceIdentifier;
         val authUrl = PrivoInternal.configuration.authUrl
-        val url = "${authUrl}/privo/authorize?client_id=mobile&service_identifier=${serviceIdentifier}&redirect_uri="
+        val url = "${authUrl}/authorize?client_id=mobile&service_identifier=${serviceIdentifier}&redirect_uri="
         val config = WebViewConfig(
             url,
             onPrivoEvent = { event ->
@@ -53,8 +53,9 @@ class PrivoAuth(val context: Context) {
         // loadingDialog.show()
         val serviceIdentifier = PrivoInternal.settings.serviceIdentifier;
         val authUrl = PrivoInternal.configuration.authUrl
-        val redirectUri = Uri.encode("https://account-dev.privo.com/mobile-auth")
-        val url = "${authUrl}/privo/authorize?client_id=mobile&service_identifier=${serviceIdentifier}&redirect_uri=${redirectUri}"
+        val prefix = PrivoInternal.configuration.urlPrefix
+        val redirectUri = Uri.encode("https://account${prefix}.privo.com/mobile-auth")
+        val url = "${authUrl}/authorize?client_id=mobile&service_identifier=${serviceIdentifier}&redirect_uri=${redirectUri}"
         val config = WebViewConfig(
             url,
             onPrivoEvent = { event ->
