@@ -6,7 +6,6 @@ import com.privo.sdk.internal.AgeSettingsInternal
 import com.privo.sdk.internal.PrivoInternal
 import com.privo.sdk.internal.PrivoPreferenceKey
 import com.privo.sdk.model.*
-import com.privo.sdk.model.AgeGateExpireEvent
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 
@@ -14,8 +13,6 @@ import com.squareup.moshi.Types
 internal class AgeGateStorage(val context: Context) {
     private val FP_ID = "PrivoFpId"
     private val AGE_GATE_STORED_ENTITY_KEY = "AgeGateStoredEntity"
-    private val AGE_GATE_ID_KEY_PREFIX = "AgeGateID"
-    private val AGE_EVENT_KEY_PREFIX = "PrivoAgeGateEvent"
 
     internal val preferences: SharedPreferences = context.getSharedPreferences(PrivoPreferenceKey, Context.MODE_PRIVATE)
     internal var serviceSettings = AgeSettingsInternal()
@@ -40,9 +37,12 @@ internal class AgeGateStorage(val context: Context) {
     private fun getStoredEntitiesKey (): String {
         return "${AGE_GATE_STORED_ENTITY_KEY}-${PrivoInternal.settings.envType}"
     }
+    private fun getFpIdKey (): String {
+        return "${FP_ID}-${PrivoInternal.settings.envType}"
+    }
 
-    internal fun getStoredFpId () = preferences.getString(FP_ID,null)
-    internal fun storeFpId (id: String?) = storeValue(id, FP_ID)
+    internal fun getStoredFpId () = preferences.getString(getFpIdKey(),null)
+    internal fun storeFpId (id: String?) = storeValue(id, getFpIdKey())
 
     internal fun getFpId(completion: (String) -> Unit) {
         getStoredFpId()?.let {
@@ -100,31 +100,8 @@ internal class AgeGateStorage(val context: Context) {
             ageGateData?.let {
                 completion(it.agId)
             } ?: run {
-                // fallback 1. TODO: remove it later (after all users will use a new storage)
-                val oldKey = "${AGE_GATE_ID_KEY_PREFIX}-${userIdentifier ?: ""}"
-                preferences.getString(oldKey,null)?.let { agId ->
-                    storeAgId(userIdentifier = userIdentifier, nickname = nickname, agId = agId)
-                    completion(agId)
-                } ?: run {
-                    // fallback 2. TODO: remove it later (after all users will use a new storage)
-                    val oldKey2 = "${AGE_EVENT_KEY_PREFIX}-${userIdentifier ?: '0'}"
-                    preferences.getString(oldKey2,null)?.let { eventString ->
-                        val adapter = moshi.adapter(AgeGateExpireEvent::class.java)
-                        val expireEvent = adapter.fromJson(eventString)
-                        expireEvent?.event?.agId?.let { agId ->
-                            storeAgId(
-                                userIdentifier = userIdentifier,
-                                nickname = nickname,
-                                agId = agId
-                            )
-                            completion(agId)
-                        } ?: run {
-                            completion(null)
-                        }
-                    } ?: run {
-                        completion(null)
-                    }
-                }
+                completion(null)
+
             }
         }
     }
