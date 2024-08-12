@@ -54,7 +54,12 @@ internal class PrivoWebViewClient(private val config: WebViewConfig, private val
     override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
         super.doUpdateVisitedHistory(view, url, isReload)
         val finishCriteria = config.finishCriteria
-        if (finishCriteria != null && url != null && url.contains(finishCriteria) && isFinished == false ) {
+        if (finishCriteria != null &&
+            url != null &&
+            url.contains(finishCriteria) &&
+            !url.contains("api/v1.0/redirect?target_url") && // redirect check is not a finish criteria in all possible cases
+            isFinished == false
+        ) {
             isFinished = true // fix preventing multiple onFinish
             config.onFinish?.invoke(Uri.parse(url))
         }
