@@ -14,6 +14,7 @@ class PrivoVerification(val context: Context) {
     private val stateKey = "privo_state_id"
     private var activePrivoWebViewDialog: PrivoWebViewDialog? = null
     private val permissions = PermissionsInternal(context)
+    private val userSessions = mutableMapOf<String,String>()
 
     private fun storeState(profile: UserVerificationProfile?, completion: (String?) -> Unit ) {
         val redirectUrl = PrivoInternal.configuration.verificationUrl + "/#/verification-loading";
@@ -57,4 +58,21 @@ class PrivoVerification(val context: Context) {
     }
     fun checkRuntimePermissions(activity: android.app.Activity) = permissions.checkCameraPermission(activity)
 
+
+    fun getUserLimits (externalUserId: String, completion: (UserLimits?) -> Unit) {
+        val serviceIdentifier = PrivoInternal.settings.serviceIdentifier
+        val sessionIdentifier = userSessions[externalUserId]
+        if (sessionIdentifier != null) {
+            PrivoInternal.rest.checkUserLimits(serviceIdentifier, sessionIdentifier, LimitType.IV, completion)
+        } else {
+            PrivoInternal.rest.createUserSession(serviceIdentifier, externalUserId) { sessionIdentifier ->
+                if (sessionIdentifier != null) {
+                    userSessions[externalUserId] = sessionIdentifier
+                    PrivoInternal.rest.checkUserLimits(serviceIdentifier, sessionIdentifier, LimitType.IV, completion)
+                } else {
+                    completion(null)
+                }
+            }
+        }
+    }
 }
