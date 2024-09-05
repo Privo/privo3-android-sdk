@@ -14,6 +14,7 @@ import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.internal.EMPTY_REQUEST
 import okio.IOException
 import java.util.Date
 
@@ -31,6 +32,7 @@ class Rest {
         .add(AgeGateStatusTOAdapter())
         .add(AgeVerificationStatusInternalAdapter())
         .add(AgeVerificationStatusAdapter())
+        .add(LimitTypeAdapter())
         .build()
     private val JSON : MediaType = "application/json; charset=utf-8".toMediaType()
 
@@ -345,5 +347,53 @@ class Rest {
         } catch(e: java.lang.Exception) {
             Log.e("PRIVO Android SDK", "exception",e)
         }
+    }
+
+    fun createUserSession(serviceIdentifier: String, externalUserId: String, completion: (String?) -> Unit) {
+        val url = PrivoInternal.configuration.commonUrl
+            .toHttpUrl()
+            .newBuilder()
+            .addPathSegments("${serviceIdentifier}/user-sessions")
+            .build()
+        val adapter = moshi.adapter(UserSessionRequest::class.java)
+        val body = adapter
+            .toJson(UserSessionRequest(externalUserId))
+            .toRequestBody(JSON)
+        val request = Request.Builder()
+            .url(url)
+            .post(body)
+            .build()
+
+        processRequest(request,String::class.java,completion, null)
+    }
+    fun checkUserLimits(serviceIdentifier: String, sessionIdentifier: String, limitType: LimitType, completion: (UserLimits?) -> Unit) {
+        val url = PrivoInternal.configuration.commonUrl
+            .toHttpUrl()
+            .newBuilder()
+            .addPathSegments("${serviceIdentifier}/user-sessions/${sessionIdentifier}/${limitType}")
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .post(EMPTY_REQUEST)
+            .build()
+
+        processRequest(request,UserLimitsTO::class.java, { response ->
+            run {
+                if (response !== null) {
+                    completion(
+                        UserLimits(
+                            response.is_over_limit,
+                            response.limit_type,
+                            response.retry_after
+                        )
+                    )
+                } else {
+                    completion(null)
+                }
+
+            }
+        }, { error ->
+            completion(null);
+        })
     }
 }
