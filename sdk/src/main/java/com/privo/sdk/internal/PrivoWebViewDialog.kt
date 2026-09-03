@@ -10,6 +10,8 @@ import android.util.TypedValue
 import android.view.WindowManager
 import android.webkit.WebView
 import android.widget.RelativeLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.privo.sdk.R
 import com.privo.sdk.model.WebViewConfig
 
@@ -24,10 +26,28 @@ class PrivoWebViewDialog internal constructor(context: Context, config: WebViewC
             RelativeLayout.LayoutParams.MATCH_PARENT
         )
         val typedValue = TypedValue()
-        context.theme.resolveAttribute(R.attr.colorPrimary, typedValue, true)
+        context.theme.resolveAttribute(androidx.appcompat.R.attr.colorPrimary, typedValue, true)
         val colorPrimary = typedValue.data
+        val contentView = RelativeLayout(context)
+        contentView.setBackgroundColor(colorPrimary)
+        contentView.addView(webView, paramsWebView)
+        ViewCompat.setOnApplyWindowInsetsListener(contentView) { view, windowInsets ->
+            val insets = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or
+                    WindowInsetsCompat.Type.displayCutout() or
+                    WindowInsetsCompat.Type.ime()
+            )
+            view.setPadding(insets.left, insets.top, insets.right, insets.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
         dialog = Dialog(context,  R.style.PrivoDialogStyle)
-        dialog.addContentView(webView, paramsWebView)
+        dialog.addContentView(
+            contentView,
+            RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.MATCH_PARENT,
+                RelativeLayout.LayoutParams.MATCH_PARENT
+            )
+        )
         dialog.window?.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         dialog.window?.statusBarColor = colorPrimary
         // dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT));
